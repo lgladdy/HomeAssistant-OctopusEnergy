@@ -1,5 +1,6 @@
 
 import asyncio
+from datetime import timedelta
 
 import pytest
 
@@ -27,7 +28,7 @@ async def test_when_token_is_expired_then_token_is_refreshed_raised():
     assert octoplus is not None
 
     # Make our api key invalid and test refreshing the token works
-    client._graphql_expiration = utcnow()
+    client._graphql_expiration = utcnow() - timedelta(seconds=1)
 
     new_account, new_octoplus = await asyncio.gather(client.async_get_account(account_id), client.async_get_octoplus_points())
 
@@ -57,6 +58,7 @@ async def test_when_token_becomes_invalid_then_api_key_is_marked_as_invalid():
     # Make our api key invalid and test refreshing the token works
     client._graphql_expiration = utcnow()
     client._refresh_token = None
+    client._api_key = "invalid-api-key"
 
     exception_raised = False
     try:
