@@ -274,7 +274,7 @@ octoplus_points_query = '''query octoplus_points {
   }
 }'''
 
-octoplus_saving_session_join_mutation = '''mutation {{
+backend_octoplus_saving_session_join_mutation = '''mutation {{
 	joinSavingSessionsEvent(input: {{
 		accountNumber: "{account_id}"
 		eventCode: "{event_code}"
@@ -284,7 +284,7 @@ octoplus_saving_session_join_mutation = '''mutation {{
 }}
 '''
 
-octoplus_saving_session_query = '''query {{
+backend_octoplus_saving_session_query = '''query {{
 	savingSessions {{
     events(includeDev: false) {{
 			id
@@ -312,7 +312,7 @@ octoplus_saving_session_query = '''query {{
 	}}
 }}'''
 
-wheel_of_fortune_query = '''query {{
+backend_wheel_of_fortune_query = '''query {{
   electricity: wheelOfFortuneSpinsAllowed(fuelType:ELECTRICITY, accountNumber: "{account_id}") {{
     spinsAllowed
   }}
@@ -321,7 +321,7 @@ wheel_of_fortune_query = '''query {{
   }}
 }}'''
 
-wheel_of_fortune_mutation = '''mutation {{
+backend_wheel_of_fortune_mutation = '''mutation {{
   spinWheelOfFortune(input: {{ accountNumber: "{account_id}", fuelType: {fuel_type} }}) {{
     prize {{
       value
@@ -329,7 +329,7 @@ wheel_of_fortune_mutation = '''mutation {{
   }}
 }}'''
 
-greener_night_forecast_query = '''query {
+backend_greener_night_forecast_query = '''query {
   greenerNightsForecast {
     date
     isGreenerNight
@@ -348,7 +348,7 @@ redeem_octoplus_points_account_credit_mutation = '''mutation {{
 }}
 '''
 
-heat_pump_set_zone_mode_without_setpoint_mutation = '''
+backend_heat_pump_set_zone_mode_without_setpoint_mutation = '''
 mutation {{
   heatPumpSetZoneMode(accountNumber: "{account_id}", euid: "{euid}", operationParameters: {{
     zone: {zone_id},
@@ -359,7 +359,7 @@ mutation {{
 }}
 '''
 
-heat_pump_set_zone_mode_with_setpoint_mutation = '''
+backend_heat_pump_set_zone_mode_with_setpoint_mutation = '''
 mutation {{
   heatPumpSetZoneMode(accountNumber: "{account_id}", euid: "{euid}", operationParameters: {{
     zone: {zone_id},
@@ -371,7 +371,7 @@ mutation {{
 }}
 '''
 
-heat_pump_boost_zone_mutation = '''
+backend_heat_pump_boost_zone_mutation = '''
 mutation {{
   heatPumpSetZoneMode(accountNumber: "{account_id}", euid: "{euid}", operationParameters: {{
     zone: {zone_id},
@@ -384,7 +384,7 @@ mutation {{
 }}
 '''
 
-heat_pump_update_flow_temp_config_mutation = '''
+backend_heat_pump_update_flow_temp_config_mutation = '''
 mutation {{
   heatPumpUpdateFlowTemperatureConfiguration(
     accountNumber: "{account_id}"
@@ -414,7 +414,7 @@ mutation {{
 }}
 '''
 
-heat_pump_status_and_config_query = '''
+backend_heat_pump_status_and_config_query = '''
 query {{
   heatPumpControllerStatus(accountNumber: "{account_id}", euid: "{euid}") {{
     sensors {{
@@ -548,7 +548,7 @@ query {{
 }}
 '''
 
-heat_pump_ids_query = '''
+backend_heat_pump_ids_query = '''
 query {{
   heatPumpControllersAtLocation(accountNumber: "{account_id}", propertyId: "{property_id}") {{
     controller {{
@@ -558,7 +558,7 @@ query {{
 }}
 '''
 
-heat_pump_set_hush_mode_mutation = '''
+backend_heat_pump_set_hush_mode_mutation = '''
 mutation {{
   heatPumpSetHushMode(accountNumber: "{account_id}" euid: "{euid}" hushModeEnabled: {is_enabled}) {{
     transactionId
@@ -1041,7 +1041,7 @@ class OctopusEnergyApiClient:
       
       heat_pump_ids = []
       for (property_id) in property_ids:
-        payload = { "query": heat_pump_ids_query.format(account_id=account_id, property_id=property_id) }
+        payload = { "query": backend_heat_pump_ids_query.format(account_id=account_id, property_id=property_id) }
         headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
         async with client.post(url, json=payload, headers=headers) as heat_pump_response:
           response = await self.__async_read_response__(heat_pump_response, url)
@@ -1072,7 +1072,7 @@ class OctopusEnergyApiClient:
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = {
-        "query": heat_pump_status_and_config_query.format(
+        "query": backend_heat_pump_status_and_config_query.format(
           account_id=account_id,
           euid=euid,
         )
@@ -1104,7 +1104,7 @@ class OctopusEnergyApiClient:
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = {
-        "query": heat_pump_set_hush_mode_mutation.format(
+        "query": backend_heat_pump_set_hush_mode_mutation.format(
           account_id=account_id,
           euid=euid,
           is_enabled=str(is_enabled).lower()
@@ -1128,7 +1128,7 @@ class OctopusEnergyApiClient:
       request_context = "set-heatpump-flow-temp"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      query = heat_pump_update_flow_temp_config_mutation.format(account_id=account_id, euid=euid, weather_comp_enabled=str(weather_comp_enabled).lower(), weather_comp_min_temperature=weather_comp_min_temperature, weather_comp_max_temperature=weather_comp_max_temperature, fixed_flow_temperature=fixed_flow_temperature) 
+      query = backend_heat_pump_update_flow_temp_config_mutation.format(account_id=account_id, euid=euid, weather_comp_enabled=str(weather_comp_enabled).lower(), weather_comp_min_temperature=weather_comp_min_temperature, weather_comp_max_temperature=weather_comp_max_temperature, fixed_flow_temperature=fixed_flow_temperature) 
       payload = { "query": query }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as heat_pump_response:
@@ -1146,9 +1146,9 @@ class OctopusEnergyApiClient:
       request_context = "set-heatpump-mode"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      query = (heat_pump_set_zone_mode_with_setpoint_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, zone_mode=zone_mode, target_temperature=target_temperature) 
+      query = (backend_heat_pump_set_zone_mode_with_setpoint_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, zone_mode=zone_mode, target_temperature=target_temperature) 
                if target_temperature is not None 
-               else heat_pump_set_zone_mode_without_setpoint_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, zone_mode=zone_mode))
+               else backend_heat_pump_set_zone_mode_without_setpoint_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, zone_mode=zone_mode))
       payload = { "query": query }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as heat_pump_response:
@@ -1166,7 +1166,7 @@ class OctopusEnergyApiClient:
       request_context = "set-heatpump-boost"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      query = heat_pump_boost_zone_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, end_at=end_datetime.isoformat(sep="T"), target_temperature=target_temperature) 
+      query = backend_heat_pump_boost_zone_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, end_at=end_datetime.isoformat(sep="T"), target_temperature=target_temperature) 
       payload = { "query": query }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as heat_pump_response:
@@ -1184,7 +1184,7 @@ class OctopusEnergyApiClient:
       request_context = "greener-night-forecast"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      payload = { "query": greener_night_forecast_query }
+      payload = { "query": backend_greener_night_forecast_query }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as greener_night_forecast_response:
 
@@ -1216,8 +1216,7 @@ class OctopusEnergyApiClient:
       request_context = "saving-sessions"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      # Get account response
-      payload = { "query": octoplus_saving_session_query.format(account_id=account_id) }
+      payload = { "query": backend_octoplus_saving_session_query.format(account_id=account_id) }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as account_response:
         response_body = await self.__async_read_response__(account_response, url)
@@ -1315,8 +1314,7 @@ class OctopusEnergyApiClient:
       request_context = "join-saving-session"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      # Get account response
-      payload = { "query": octoplus_saving_session_join_mutation.format(account_id=account_id, event_code=event_code) }
+      payload = { "query": backend_octoplus_saving_session_join_mutation.format(account_id=account_id, event_code=event_code) }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as join_response:
 
@@ -2081,7 +2079,7 @@ class OctopusEnergyApiClient:
       request_context = "wheel-of-fortune"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      payload = { "query": wheel_of_fortune_query.format(account_id=account_id) }
+      payload = { "query": backend_wheel_of_fortune_query.format(account_id=account_id) }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as response:
         response_body = await self.__async_read_response__(response, url)
@@ -2113,7 +2111,7 @@ class OctopusEnergyApiClient:
       request_context = "spin-wheel-of-fortune"
       client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
-      payload = { "query": wheel_of_fortune_mutation.format(account_id=account_id, fuel_type="ELECTRICITY" if is_electricity == True else "GAS") }
+      payload = { "query": backend_wheel_of_fortune_mutation.format(account_id=account_id, fuel_type="ELECTRICITY" if is_electricity == True else "GAS") }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as response:
         response_body = await self.__async_read_response__(response, url)
