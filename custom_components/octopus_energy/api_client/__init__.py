@@ -2,9 +2,9 @@ import logging
 import json
 from typing import Any, List
 import aiohttp
+import asyncio
 from asyncio import TimeoutError
 from datetime import (datetime, timedelta, time, timezone)
-from threading import RLock
 from zoneinfo import ZoneInfo
 
 from homeassistant.util.dt import (as_utc, now, as_local, parse_datetime, parse_date)
@@ -731,9 +731,6 @@ def process_graphql_response(data: Any, url: str, request_context: str, ignore_e
   return data
 
 class OctopusEnergyApiClient:
-  _refresh_token_lock = RLock()
-  _session_lock = RLock()
-  _tariff_link_lock = RLock()
 
   def __init__(self, api_key, electricity_price_cap = None, gas_price_cap = None, timeout_in_seconds = 20, favour_direct_debit_rates = True):
     if (api_key is None):
@@ -759,17 +756,23 @@ class OctopusEnergyApiClient:
     self._default_headers = { "user-agent": f'{user_agent_value}/{INTEGRATION_VERSION}' }
 
     self._session = None
+    self._is_api_key_invalid = False
+    
+    # Use asyncio locks for async methods
+    self._session_lock = asyncio.Lock()
+    self._refresh_token_lock = asyncio.Lock()
+    self._tariff_link_lock = asyncio.Lock()
 
   async def async_close(self):
-    with self._session_lock:
+    async with self._session_lock:
       if self._session is not None:
         await self._session.close()
 
-  def _create_client_session(self):
+  async def _create_client_session(self):
     if self._session is not None:
       return self._session
     
-    with self._session_lock:
+    async with self._session_lock:
       if self._session is not None:
         return self._session
       
@@ -781,7 +784,11 @@ class OctopusEnergyApiClient:
     if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
       return
 
-    with self._refresh_token_lock:
+    async with self._refresh_token_lock:
+      if self._is_api_key_invalid:
+        _LOGGER.debug("API key has previously been marked as invalid - skipping refresh")
+        raise AuthenticationException("API key has previously been marked as invalid - skipping refresh", [])
+
       # Check that our token wasn't refreshed while waiting for the lock
       if (self._graphql_expiration is not None and (self._graphql_expiration - timedelta(minutes=5)) > now()):
         return
@@ -800,8 +807,15 @@ class OctopusEnergyApiClient:
             self._graphql_refresh_token = None
             self._graphql_expiration = None
             
-            await self.__async_fetch_token()
+            try:
+              await self.__async_fetch_token()
+            except AuthenticationException:
+              _LOGGER.error("Failed to refresh auth token using original API key")
+              self._is_api_key_invalid = True
+              raise
           else:
+            _LOGGER.error("Failed to refresh auth token using original API key")
+            self._is_api_key_invalid = True
             raise
 
       except TimeoutError:
@@ -809,7 +823,7 @@ class OctopusEnergyApiClient:
         raise TimeoutException()
 
   async def __async_fetch_token(self):
-    client = self._create_client_session()
+    client = await self._create_client_session()
     url = f'{self._base_url}/v1/graphql/'
     payload = { "query": api_token_query.format(api_key=self._api_key) if self._graphql_refresh_token is None else api_token_refresh_query.format(refresh_token=self._graphql_refresh_token) }
     headers = { integration_context_header: "refresh-token" }
@@ -828,7 +842,7 @@ class OctopusEnergyApiClient:
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
         self._graphql_expiration = now() + timedelta(hours=1)
       elif (self._graphql_expiration is None or self._graphql_expiration < now()):
-        raise AuthenticationException("Failed to retrieve auth token and current token is expired")
+        raise AuthenticationException("Failed to retrieve auth token and current token is expired", [])
       else:
         _LOGGER.error("Failed to retrieve auth token")
       
@@ -938,7 +952,7 @@ class OctopusEnergyApiClient:
     """Checks the headers are set correctly"""
     try:
       request_context = "test-headers"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'http://httpbin.org/headers'
       headers = { "Authorization": f"TEST", integration_context_header: request_context }
       async with client.get(url, headers=headers) as response:
@@ -971,7 +985,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "get-account"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       # Get account response
       payload = { "query": account_query.format(account_id=account_id) }
@@ -1022,7 +1036,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "heatpump-ids"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       
       heat_pump_ids = []
@@ -1055,7 +1069,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "heatpump-configuration"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = {
         "query": heat_pump_status_and_config_query.format(
@@ -1087,7 +1101,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "heatpump-hush-mode"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = {
         "query": heat_pump_set_hush_mode_mutation.format(
@@ -1112,7 +1126,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-heatpump-flow-temp"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       query = heat_pump_update_flow_temp_config_mutation.format(account_id=account_id, euid=euid, weather_comp_enabled=str(weather_comp_enabled).lower(), weather_comp_min_temperature=weather_comp_min_temperature, weather_comp_max_temperature=weather_comp_max_temperature, fixed_flow_temperature=fixed_flow_temperature) 
       payload = { "query": query }
@@ -1130,7 +1144,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-heatpump-mode"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       query = (heat_pump_set_zone_mode_with_setpoint_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, zone_mode=zone_mode, target_temperature=target_temperature) 
                if target_temperature is not None 
@@ -1150,7 +1164,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-heatpump-boost"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       query = heat_pump_boost_zone_mutation.format(account_id=account_id, euid=euid, zone_id=zone_id, end_at=end_datetime.isoformat(sep="T"), target_temperature=target_temperature) 
       payload = { "query": query }
@@ -1168,7 +1182,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "greener-night-forecast"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = { "query": greener_night_forecast_query }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
@@ -1200,7 +1214,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "saving-sessions"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       # Get account response
       payload = { "query": octoplus_saving_session_query.format(account_id=account_id) }
@@ -1241,7 +1255,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "free-electricity-sessions"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'https://oe-api.davidskendall.co.uk/free_electricity.json'
       payload = { }
       headers = { integration_context_header: request_context }
@@ -1274,7 +1288,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "octoplus-points"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       # Get account response
       payload = { "query": octoplus_points_query }
@@ -1299,7 +1313,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "join-saving-session"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       # Get account response
       payload = { "query": octoplus_saving_session_join_mutation.format(account_id=account_id, event_code=event_code) }
@@ -1323,7 +1337,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "redeem-octoplus-points"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": redeem_octoplus_points_account_credit_mutation.format(account_id=account_id, points=points_to_redeem) }
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
@@ -1344,7 +1358,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "home-mini-consumption"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
 
       payload = { "query": live_consumption_query.format(device_id=device_id, period_from=period_from.strftime("%Y-%m-%dT%H:%M:%S%z"), period_to=period_to.strftime("%Y-%m-%dT%H:%M:%S%z")) }
@@ -1376,7 +1390,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "electricity-rates"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
       page = 1
       has_more_rates = True
@@ -1406,7 +1420,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "electricity-rates"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
       url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/day-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
@@ -1452,7 +1466,7 @@ class OctopusEnergyApiClient:
 
         try:
           request_context = "electricity-rates"
-          client = self._create_client_session()
+          client = await self._create_client_session()
           auth = aiohttp.BasicAuth(self._api_key, '')
           page = 1
           has_more_rates = True
@@ -1494,7 +1508,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "electricity-consumption"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
 
       query_params = []
@@ -1541,7 +1555,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "gas-rates"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
       url = f'{self._base_url}/v1/products/{product_code}/gas-tariffs/{tariff_code}/standard-unit-rates?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
@@ -1563,7 +1577,7 @@ class OctopusEnergyApiClient:
     
     try:
       request_context = "gas-consumption"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
 
       query_params = []
@@ -1623,7 +1637,7 @@ class OctopusEnergyApiClient:
     return (code, links)
     
   async def _async_get_tariff_code_rate_links(self, product_code: str, tariff_code: str) -> list[str] | None:
-    with self._tariff_link_lock:
+    async with self._tariff_link_lock:
 
       if tariff_code in self._tariff_links_cache:
         _LOGGER.debug(f"Found cached rate links for tariff code: {tariff_code}")
@@ -1631,7 +1645,7 @@ class OctopusEnergyApiClient:
 
       try:
         request_context = "get-product-info"
-        client = self._create_client_session()
+        client = await self._create_client_session()
         auth = aiohttp.BasicAuth(self._api_key, '')
         url = f'{self._base_url}/v1/products/{product_code}'
         headers = { integration_context_header: request_context }
@@ -1665,10 +1679,10 @@ class OctopusEnergyApiClient:
   async def async_get_product(self, product_code: str):
     """Get all products"""
 
-    with self._tariff_link_lock:
+    async with self._tariff_link_lock:
       try:
         request_context = "get-product-info"
-        client = self._create_client_session()
+        client = await self._create_client_session()
         auth = aiohttp.BasicAuth(self._api_key, '')
         url = f'{self._base_url}/v1/products/{product_code}'
         headers = { integration_context_header: request_context }
@@ -1685,7 +1699,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "electricity-standing-charge"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
       url = f'{self._base_url}/v1/products/{product_code}/electricity-tariffs/{tariff_code}/standing-charges?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
@@ -1705,7 +1719,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "gas-standing-charge"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       auth = aiohttp.BasicAuth(self._api_key, '')
       url = f'{self._base_url}/v1/products/{product_code}/gas-tariffs/{tariff_code}/standing-charges?period_from={period_from.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}&period_to={period_to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}'
       headers = { integration_context_header: request_context }
@@ -1725,7 +1739,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "intelligent-dispatches"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_dispatches_query.format(account_id=account_id, device_id=device_id) }
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
@@ -1784,7 +1798,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "intelligent-settings"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_settings_query.format(account_id=account_id, device_id=device_id) }
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
@@ -1837,7 +1851,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-intelligent-target-perc"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_settings_mutation.format(
           device_id=device_id,
@@ -1875,7 +1889,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-intelligent-target-time"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_settings_mutation.format(
           device_id=device_id,
@@ -1905,7 +1919,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-intelligent-bump"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_turn_on_bump_charge_mutation.format(
         device_id=device_id,
@@ -1927,7 +1941,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-intelligent-bump"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_turn_off_bump_charge_mutation.format(
         device_id=device_id,
@@ -1949,7 +1963,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-intelligent-smart"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_turn_on_smart_charge_mutation.format(
         device_id=device_id,
@@ -1971,7 +1985,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "set-intelligent-smart"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_turn_off_smart_charge_mutation.format(
         device_id=device_id,
@@ -1991,7 +2005,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "get-intelligent-device"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._base_url}/v1/graphql/'
       payload = { "query": intelligent_device_query.format(account_id=account_id) }
       headers = { "Authorization": f"JWT {self._graphql_token}", integration_context_header: request_context }
@@ -2065,7 +2079,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "wheel-of-fortune"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = { "query": wheel_of_fortune_query.format(account_id=account_id) }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
@@ -2097,7 +2111,7 @@ class OctopusEnergyApiClient:
 
     try:
       request_context = "spin-wheel-of-fortune"
-      client = self._create_client_session()
+      client = await self._create_client_session()
       url = f'{self._backend_base_url}/v1/graphql/'
       payload = { "query": wheel_of_fortune_mutation.format(account_id=account_id, fuel_type="ELECTRICITY" if is_electricity == True else "GAS") }
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
