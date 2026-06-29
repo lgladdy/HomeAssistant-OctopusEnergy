@@ -1,3 +1,10 @@
+## [18.3.2](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.3.1...v18.3.2) (2026-06-29)
+
+
+### Bug Fixes
+
+* Fixed refreshing of api keys (30 minutes dev time) ([e7f59cc](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/e7f59cc71b81c7ea617cbbbe2e5e0a37c11d2292))
+
 ## [18.3.1](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.3.0...v18.3.1) (2026-06-06)
 
 
