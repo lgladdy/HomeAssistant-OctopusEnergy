@@ -573,7 +573,8 @@ integration_context_header = "Ha-Integration-Context"
 
 # Not a fan of this, but no other way to identify this type of tariff. Hopefully OE don't change their tariff structure
 intelligent_tariffs = [
-  "IOG-SMB-TOU"
+  "IOG-SMB-TOU",
+  "IOG-SMB-FIX"
 ]
 
 def get_valid_from(rate):

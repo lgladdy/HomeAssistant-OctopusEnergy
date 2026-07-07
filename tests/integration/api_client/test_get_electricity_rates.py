@@ -294,6 +294,7 @@ async def test_when_get_electricity_rates_is_called_with_2_rate_tariff_then_data
     ("IOG-SMB-TOU-25-12-12", "E-1R-IOG-SMB-TOU-25-12-12-E", datetime.strptime("2026-03-28T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-03-31T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
     # BST to GMT crossing — clocks fall back October 25, 2026 at 01:00 UTC
     ("IOG-SMB-TOU-25-12-12", "E-1R-IOG-SMB-TOU-25-12-12-E", datetime.strptime("2026-10-24T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-10-27T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
+    ("IOG-SMB-FIX-12M-26-02-11", "E-1R-IOG-SMB-FIX-12M-26-02-11-M", datetime.strptime("2026-07-06T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-07-09T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
 ])
 async def test_when_get_electricity_rates_is_called_with_time_of_use_intelligent_tariff_then_data_is_returned_correctly(product_code: str, tariff_code: str, period_from: datetime, period_to: datetime):
     # Act
