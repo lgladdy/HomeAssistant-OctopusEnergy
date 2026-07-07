@@ -302,21 +302,24 @@ async def test_when_get_electricity_rates_is_called_with_time_of_use_intelligent
 
     # Assert
     cheapest_rate = None
+    expensive_rate = None
     for item in data:
         if cheapest_rate is None or cheapest_rate > item["value_inc_vat"]:
             cheapest_rate = item["value_inc_vat"]
-
-    expensive_rate = None
-    for item in data:
+        
         if expensive_rate is None or expensive_rate < item["value_inc_vat"]:
             expensive_rate = item["value_inc_vat"]
+
+    assert cheapest_rate is not None
+    assert expensive_rate is not None
+    assert cheapest_rate < expensive_rate
 
     # IOG night rate window: 23:30–05:30 UK local time
     expected_cheapest_start: time = datetime.strptime("23:30:00", "%H:%M:%S").time()
     expected_cheapest_end: time = datetime.strptime("05:30:00", "%H:%M:%S").time()
 
     for item in data:
-        start = item["start"]
+        start: datetime = as_local(item["start"])
 
         if (start.time() >= expected_cheapest_start or start.time() < expected_cheapest_end):
             if item["value_inc_vat"] != cheapest_rate:

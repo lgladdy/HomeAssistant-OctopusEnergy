@@ -2163,17 +2163,28 @@ class OctopusEnergyApiClient:
     if use_utc:
         rate_utc_valid_from = as_utc(rate["start"])
         # We need to convert our times into local time to account for BST to ensure that our rate is valid between the target times.
-        from_date_time = as_local(parse_datetime(rate_utc_valid_from.strftime(f"%Y-%m-%dT{target_from_time}Z")))
-        to_date_time = as_local(parse_datetime(rate_utc_valid_from.strftime(f"%Y-%m-%dT{target_to_time}Z")))
+        from_date_time: datetime = as_local(parse_datetime(rate_utc_valid_from.strftime(f"%Y-%m-%dT{target_from_time}Z")))
+        to_date_time: datetime = as_local(parse_datetime(rate_utc_valid_from.strftime(f"%Y-%m-%dT{target_to_time}Z")))
     else:
-        local_now = now()
         # We need to convert our times into local time to account for BST to ensure that our rate is valid between the target times.
-        from_date_time = as_local(parse_datetime(rate_local_valid_from.strftime(f"%Y-%m-%dT{target_from_time}{local_now.strftime('%z')}")))
-        to_date_time = as_local(parse_datetime(rate_local_valid_from.strftime(f"%Y-%m-%dT{target_to_time}{local_now.strftime('%z')}")))
+        # We use the rate's own UTC offset (rather than "now"'s) so this stays correct when "now" and the rate fall on different sides of a DST change.
+        rate_offset = rate_local_valid_from.strftime('%z')
+        from_date_time: datetime = as_local(parse_datetime(rate_local_valid_from.strftime(f"%Y-%m-%dT{target_from_time}{rate_offset}")))
+        to_date_time: datetime = as_local(parse_datetime(rate_local_valid_from.strftime(f"%Y-%m-%dT{target_to_time}{rate_offset}")))
 
-    _LOGGER.debug('is_valid: %s; from_date_time: %s; to_date_time: %s; rate_local_valid_from: %s; rate_local_valid_to: %s', rate_local_valid_from >= from_date_time and rate_local_valid_from < to_date_time, from_date_time, to_date_time, rate_local_valid_from, rate_local_valid_to)
+    if from_date_time > to_date_time:
+      to_date_time = to_date_time + timedelta(days=1)
 
-    return rate_local_valid_from >= from_date_time and rate_local_valid_from < to_date_time
+    is_valid = rate_local_valid_from >= from_date_time and rate_local_valid_from < to_date_time
+    if not is_valid:
+      from_date_time = from_date_time - timedelta(days=1)
+      to_date_time = to_date_time - timedelta(days=1)
+
+      is_valid = rate_local_valid_from >= from_date_time and rate_local_valid_from < to_date_time
+
+    _LOGGER.debug('is_valid: %s; from_date_time: %s; to_date_time: %s; rate_local_valid_from: %s; rate_local_valid_to: %s', is_valid, from_date_time, to_date_time, rate_local_valid_from, rate_local_valid_to)
+
+    return is_valid
 
   def __process_consumption(self, item):
     return {
