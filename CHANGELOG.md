@@ -1,3 +1,11 @@
+## [18.3.3](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.3.2...v18.3.3) (2026-07-08)
+
+
+### Bug Fixes
+
+* Added support for IOG-SMB-FIX tariff (30 minutes dev time) ([af4dd2a](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/af4dd2a5bf31355fbb158315101522d7a3d4c896))
+* Fixed day/night rate calculations (1.5 hours dev time) ([f9e01e9](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/f9e01e9df8b5bc6296ad23638a806f49424e77ce))
+
 ## [18.3.2](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.3.1...v18.3.2) (2026-06-29)
 
 
