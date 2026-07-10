@@ -4,6 +4,9 @@ on:
   schedule:
     # run once a week to check for deprecations
     - cron: '0 1 * * 0'
+  push:
+    branches:
+      - develop
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
