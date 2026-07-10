@@ -29,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 class OctopusEnergyCurrentElectricityIntervalAccumulativeConsumption(CoordinatorEntity, OctopusEnergyElectricitySensor, RestoreSensor):
   """Sensor for displaying the electricity consumption for the current 30 minute interval."""
 
-  def __init__(self, hass: HomeAssistant, coordinator, saving_session_coordinator, meter, point):
+  def __init__(self, hass: HomeAssistant, coordinator, power_down_coordinator, meter, point):
     """Init sensor."""
     CoordinatorEntity.__init__(self, coordinator)
     OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
@@ -37,7 +37,7 @@ class OctopusEnergyCurrentElectricityIntervalAccumulativeConsumption(Coordinator
     self._state = None
     self._last_reset = None
     
-    self._saving_session_coordinator = saving_session_coordinator
+    self._power_down_coordinator = power_down_coordinator
 
   @property
   def unique_id(self):

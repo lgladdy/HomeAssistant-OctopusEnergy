@@ -305,6 +305,10 @@
     "target_rate_not_supported": {
       "title": "Target rate configuration not supported",
       "description": "Configuration for target rates is now achieved via an additional integration and no longer provided as part of this integration. Please click \"Learn More\" for more information on how to migrate to the new way of creating target rate sensors."
+    },
+    "free_electricity_sensors_removal": {
+      "title": "Saving session and free electricity sensors naming change",
+      "description": "The saving sessions and free electricity based sensors have new sensors available matching the new Power Down and Power Up functionality. Please click \"Learn More\" for more information on why this change is occuring and how it effects you."
     }
   },
   "entity": {
@@ -413,6 +417,24 @@
           "event_type": {
             "state": {
               "octopus_energy_all_octoplus_saving_sessions": "All Saving sessions"
+            }
+          }
+        }
+      },
+      "power_down_sessions": {
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "octopus_energy_all_octoplus_power_down_sessions": "All Power Down sessions"
+            }
+          }
+        }
+      },
+      "power_up_sessions": {
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "octopus_energy_all_octoplus_power_up_sessions": "All Power Up sessions"
             }
           }
         }

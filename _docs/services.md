@@ -6,7 +6,24 @@ There are a few services available within this integration, which are detailed h
 
 The following services are available if your account is enrolled into [Octoplus](./entities/octoplus.md).
 
+### octopus_energy.join_octoplus_power_down_session_event
+
+Service for joining a new power down session event. When used, it may take a couple of minutes for the other sensors to refresh the changes.
+
+| Attribute                | Optional | Description                                                                                                           |
+| ------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `target.entity_id`       | `no`     | The name of the target sensor whose configuration is to be updated. This should always point at the [power down events](./entities/octoplus.md#power-down-events) entity. |
+| `data.event_code`      | `no`    | The code of the event to join |
+
+#### Automation Example
+
+For an automation example, please refer to the available [blueprint](./blueprints.md#automatically-join-power-down-sessions).
+
 ### octopus_energy.join_octoplus_saving_session_event
+
+!!! warning
+
+    This service is superceded by [octopus_energy.join_octoplus_power_down_session_event](#octopus_energyjoin_octoplus_power_down_session_event) above. Prefer that service for new automations. See [this ADR](./architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information.
 
 Service for joining a new saving session event. When used, it may take a couple of minutes for the other sensors to refresh the changes.
 

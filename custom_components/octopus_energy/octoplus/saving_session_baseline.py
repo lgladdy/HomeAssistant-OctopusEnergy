@@ -25,7 +25,7 @@ from . import (
   get_octoplus_session_target
 )
 
-from ..coordinators.saving_sessions import SavingSessionsCoordinatorResult
+from ..coordinators.power_down_sessions import PowerDownSessionsCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 from ..api_client.saving_sessions import SavingSession
 
@@ -48,10 +48,10 @@ class OctopusEnergySavingSessionBaseline(MultiCoordinatorEntity, OctopusEnergyEl
     "data_last_retrieved"
   })
 
-  def __init__(self, hass: HomeAssistant, saving_session_coordinator, previous_rates_and_consumption_coordinator, meter, point, mock_baseline):
+  def __init__(self, hass: HomeAssistant, power_down_coordinator, previous_rates_and_consumption_coordinator, meter, point, mock_baseline):
     """Init sensor."""
 
-    MultiCoordinatorEntity.__init__(self, saving_session_coordinator, [previous_rates_and_consumption_coordinator])
+    MultiCoordinatorEntity.__init__(self, power_down_coordinator, [previous_rates_and_consumption_coordinator])
     OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
 
     self._previous_rates_and_consumption_coordinator = previous_rates_and_consumption_coordinator
@@ -127,7 +127,7 @@ class OctopusEnergySavingSessionBaseline(MultiCoordinatorEntity, OctopusEnergyEl
       return
     
     current: datetime = utcnow()
-    saving_session: SavingSessionsCoordinatorResult = self.coordinator.data if self.coordinator is not None else None
+    saving_session: PowerDownSessionsCoordinatorResult = self.coordinator.data if self.coordinator is not None else None
     previous_consumption: PreviousConsumptionCoordinatorResult = self._previous_rates_and_consumption_coordinator.data if self._previous_rates_and_consumption_coordinator is not None else None
     if saving_session is not None and previous_consumption is not None:
 

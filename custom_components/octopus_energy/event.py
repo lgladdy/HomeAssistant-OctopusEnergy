@@ -1,4 +1,5 @@
 import logging
+
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant
@@ -16,6 +17,8 @@ from .gas.rates_previous_day import OctopusEnergyGasPreviousDayRates
 from .gas.rates_previous_consumption import OctopusEnergyGasPreviousConsumptionRates
 from .octoplus.saving_sessions_events import OctopusEnergyOctoplusSavingSessionEvents
 from .octoplus.free_electricity_sessions_events import OctopusEnergyOctoplusFreeElectricitySessionEvents
+from .octoplus.power_up_events import OctopusEnergyOctoplusPowerUpEvents
+from .octoplus.power_down_events import OctopusEnergyOctoplusPowerDownEvents
 from .electricity.rates_previous_consumption_override import OctopusEnergyElectricityPreviousConsumptionOverrideRates
 from .gas.rates_previous_consumption_override import OctopusEnergyGasPreviousConsumptionOverrideRates
 
@@ -24,6 +27,7 @@ from .const import (
   CONFIG_KIND,
   CONFIG_KIND_ACCOUNT,
   CONFIG_KIND_TARIFF_COMPARISON,
+  CONFIG_MAIN_LEGACY_SAVING_SESSIONS_FREE_ELECTRICITY_PRESENT,
   CONFIG_TARIFF_COMPARISON_MPAN_MPRN,
   DATA_CLIENT,
   DOMAIN,
@@ -56,6 +60,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ),
     "async_join_saving_session_event",
   )
+  platform.async_register_entity_service(
+    "join_octoplus_power_down_session_event",
+    vol.All(
+      cv.make_entity_service_schema(
+        {
+          vol.Required("event_code"): str,
+        },
+        extra=vol.ALLOW_EXTRA,
+      ),
+    ),
+    "async_join_saving_session_event",
+  )
 
   return True
 
@@ -69,12 +85,21 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
   account_info = account_result.account if account_result is not None else None
   client = hass.data[DOMAIN][account_id][DATA_CLIENT]
   octoplus_enrolled = account_info is not None and account_info["octoplus_enrolled"] == True
+  legacy_saving_sessions_free_electricity_present = config[CONFIG_MAIN_LEGACY_SAVING_SESSIONS_FREE_ELECTRICITY_PRESENT] if CONFIG_MAIN_LEGACY_SAVING_SESSIONS_FREE_ELECTRICITY_PRESENT in config else False
 
   now = utcnow()
-  entities = [OctopusEnergyOctoplusSavingSessionEvents(hass, client, account_id)]
+  entities = [
+    OctopusEnergyOctoplusPowerDownEvents(hass, client, account_id),
+  ]
+
+  if legacy_saving_sessions_free_electricity_present:
+    entities.append(OctopusEnergyOctoplusSavingSessionEvents(hass, client, account_id))
 
   if octoplus_enrolled:
-    entities.append(OctopusEnergyOctoplusFreeElectricitySessionEvents(hass, account_id))
+    if legacy_saving_sessions_free_electricity_present:
+      entities.append(OctopusEnergyOctoplusFreeElectricitySessionEvents(hass, account_id))
+
+    entities.append(OctopusEnergyOctoplusPowerUpEvents(hass, account_id))
 
   if len(account_info["electricity_meter_points"]) > 0:
     for point in account_info["electricity_meter_points"]:

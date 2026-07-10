@@ -25,7 +25,7 @@ from . import (
   get_octoplus_session_target
 )
 
-from ..coordinators.free_electricity_sessions import FreeElectricitySessionsCoordinatorResult
+from ..coordinators.power_up_sessions import PowerUpSessionsCoordinatorResult
 from ..utils.attributes import dict_to_typed_dict
 from ..api_client.free_electricity_sessions import FreeElectricitySession
 
@@ -48,10 +48,10 @@ class OctopusEnergyFreeElectricitySessionBaseline(MultiCoordinatorEntity, Octopu
     "data_last_retrieved"
   })
 
-  def __init__(self, hass: HomeAssistant, free_electricity_session_coordinator, previous_rates_and_consumption_coordinator, meter, point, mock_baseline):
+  def __init__(self, hass: HomeAssistant, power_up_sessions_coordinator, previous_rates_and_consumption_coordinator, meter, point, mock_baseline):
     """Init sensor."""
 
-    MultiCoordinatorEntity.__init__(self, free_electricity_session_coordinator, [previous_rates_and_consumption_coordinator])
+    MultiCoordinatorEntity.__init__(self, power_up_sessions_coordinator, [previous_rates_and_consumption_coordinator])
     OctopusEnergyElectricitySensor.__init__(self, hass, meter, point)
 
     self._previous_rates_and_consumption_coordinator = previous_rates_and_consumption_coordinator
@@ -127,7 +127,7 @@ class OctopusEnergyFreeElectricitySessionBaseline(MultiCoordinatorEntity, Octopu
       return
     
     current: datetime = utcnow()
-    free_electricity_sessions: FreeElectricitySessionsCoordinatorResult = self.coordinator.data if self.coordinator is not None else None
+    free_electricity_sessions: PowerUpSessionsCoordinatorResult = self.coordinator.data if self.coordinator is not None else None
     previous_consumption: PreviousConsumptionCoordinatorResult = self._previous_rates_and_consumption_coordinator.data if self._previous_rates_and_consumption_coordinator is not None else None
     if free_electricity_sessions is not None and previous_consumption is not None:
 

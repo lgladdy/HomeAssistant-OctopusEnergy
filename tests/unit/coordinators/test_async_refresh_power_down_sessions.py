@@ -2,10 +2,10 @@ import pytest
 import mock
 from datetime import datetime, timedelta
 
-from custom_components.octopus_energy.coordinators.saving_sessions import SavingSessionsCoordinatorResult, async_refresh_saving_sessions
+from custom_components.octopus_energy.coordinators.power_down_sessions import PowerDownSessionsCoordinatorResult, async_refresh_power_down_sessions
 from custom_components.octopus_energy.api_client import OctopusEnergyApiClient, RequestException
 from custom_components.octopus_energy.api_client.saving_sessions import SavingSession, SavingSessionsResponse
-from custom_components.octopus_energy.const import EVENT_ALL_SAVING_SESSIONS, EVENT_NEW_SAVING_SESSION, REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS
+from custom_components.octopus_energy.const import EVENT_ALL_SAVING_SESSIONS, EVENT_NEW_SAVING_SESSION, EVENT_ALL_POWER_DOWN_SESSIONS, EVENT_NEW_POWER_DOWN_SESSION, REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN
 
 region = "1"
 
@@ -108,10 +108,10 @@ async def test_when_next_refresh_is_in_the_future_and_previous_data_is_available
     return None
   
   current_utc_timestamp = datetime.strptime(f'2022-02-12T00:00:00Z', "%Y-%m-%dT%H:%M:%S%z")
-  previous_data=SavingSessionsCoordinatorResult(current_utc_timestamp, 1, [], [])
+  previous_data=PowerDownSessionsCoordinatorResult(current_utc_timestamp, 1, [], [])
 
   # Act
-  result = await async_refresh_saving_sessions(
+  result = await async_refresh_power_down_sessions(
     current_utc_timestamp,
     client,
     account_id,
@@ -146,7 +146,7 @@ async def test_when_upcoming_events_contains_events_in_past_then_events_filtered
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -157,8 +157,9 @@ async def test_when_upcoming_events_contains_events_in_past_then_events_filtered
     # Assert
     assert result is not None
 
-    assert len(actual_fired_events) == 1
+    assert len(actual_fired_events) == 2
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [], [], [])
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [], [], [])
 
 @pytest.mark.asyncio
 async def test_when_upcoming_events_contains_joined_events_then_events_filtered_out():
@@ -182,7 +183,7 @@ async def test_when_upcoming_events_contains_joined_events_then_events_filtered_
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -193,8 +194,9 @@ async def test_when_upcoming_events_contains_joined_events_then_events_filtered_
     # Assert
     assert result is not None
 
-    assert len(actual_fired_events) == 1
+    assert len(actual_fired_events) == 2
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [], [expected_saving_session])
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [], [expected_saving_session])
 
 @pytest.mark.asyncio
 async def test_when_upcoming_events_present_and_no_previous_data_then_new_event_fired():
@@ -218,7 +220,7 @@ async def test_when_upcoming_events_present_and_no_previous_data_then_new_event_
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -229,9 +231,11 @@ async def test_when_upcoming_events_present_and_no_previous_data_then_new_event_
     # Assert
     assert result is not None
 
-    assert len(actual_fired_events) == 2
+    assert len(actual_fired_events) == 4
     assert_raised_new_saving_session_event(actual_fired_events[EVENT_NEW_SAVING_SESSION], account_id, expected_saving_session)
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
+    assert_raised_new_saving_session_event(actual_fired_events[EVENT_NEW_POWER_DOWN_SESSION], account_id, expected_saving_session)
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("targetRegions", [
@@ -244,7 +248,7 @@ async def test_when_upcoming_events_present_and_not_in_previous_data_then_new_ev
   current_utc_timestamp = datetime.strptime(f'2022-02-12T00:00:00Z', "%Y-%m-%dT%H:%M:%S%z")
 
   account_id = "ABC123"
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [], [])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [], [])
 
   actual_fired_events = {}
   def fire_event(name, metadata):
@@ -260,7 +264,7 @@ async def test_when_upcoming_events_present_and_not_in_previous_data_then_new_ev
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -273,9 +277,11 @@ async def test_when_upcoming_events_present_and_not_in_previous_data_then_new_ev
     assert len(result.available_events) == 1
     assert result.available_events[0] == expected_saving_session
 
-    assert len(actual_fired_events) == 2
+    assert len(actual_fired_events) == 4
     assert_raised_new_saving_session_event(actual_fired_events[EVENT_NEW_SAVING_SESSION], account_id, expected_saving_session)
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
+    assert_raised_new_saving_session_event(actual_fired_events[EVENT_NEW_POWER_DOWN_SESSION], account_id, expected_saving_session)
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
 
 @pytest.mark.asyncio
 async def test_when_upcoming_events_present_but_for_different_region_then_not_in_upcoming_events():
@@ -283,7 +289,7 @@ async def test_when_upcoming_events_present_but_for_different_region_then_not_in
   current_utc_timestamp = datetime.strptime(f'2022-02-12T00:00:00Z', "%Y-%m-%dT%H:%M:%S%z")
 
   account_id = "ABC123"
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [], [])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [], [])
 
   actual_fired_events = {}
   def fire_event(name, metadata):
@@ -299,7 +305,7 @@ async def test_when_upcoming_events_present_but_for_different_region_then_not_in
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -311,8 +317,9 @@ async def test_when_upcoming_events_present_but_for_different_region_then_not_in
     assert result is not None
     assert len(result.available_events) == 0
 
-    assert len(actual_fired_events) == 1
+    assert len(actual_fired_events) == 2
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
 
 
 @pytest.mark.asyncio
@@ -332,13 +339,13 @@ async def test_when_upcoming_events_present_and_in_previous_data_then_new_event_
   async def async_mocked_get_saving_sessions(*args, **kwargs):
     return SavingSessionsResponse([expected_saving_session], [], region)
   
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [expected_saving_session], [])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [expected_saving_session], [])
 
   with mock.patch.multiple(OctopusEnergyApiClient, async_get_saving_sessions=async_mocked_get_saving_sessions): 
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -349,8 +356,9 @@ async def test_when_upcoming_events_present_and_in_previous_data_then_new_event_
     # Assert
     assert result is not None
 
-    assert len(actual_fired_events) == 1
+    assert len(actual_fired_events) == 2
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
 
 @pytest.mark.asyncio
 async def test_when_upcoming_events_present_and_in_previous_data_but_with_different_event_code_then_new_event_fired():
@@ -369,13 +377,13 @@ async def test_when_upcoming_events_present_and_in_previous_data_but_with_differ
   async def async_mocked_get_saving_sessions(*args, **kwargs):
     return SavingSessionsResponse([expected_saving_session], [], region)
   
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [SavingSession("1", "DEF", current_utc_timestamp + timedelta(minutes=1), current_utc_timestamp + timedelta(minutes=31), 1)], [])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [SavingSession("1", "DEF", current_utc_timestamp + timedelta(minutes=1), current_utc_timestamp + timedelta(minutes=31), 1)], [])
 
   with mock.patch.multiple(OctopusEnergyApiClient, async_get_saving_sessions=async_mocked_get_saving_sessions): 
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -386,9 +394,11 @@ async def test_when_upcoming_events_present_and_in_previous_data_but_with_differ
     # Assert
     assert result is not None
 
-    assert len(actual_fired_events) == 2
+    assert len(actual_fired_events) == 4
     assert_raised_new_saving_session_event(actual_fired_events[EVENT_NEW_SAVING_SESSION], account_id, expected_saving_session)
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
+    assert_raised_new_saving_session_event(actual_fired_events[EVENT_NEW_POWER_DOWN_SESSION], account_id, expected_saving_session)
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
 
 @pytest.mark.asyncio
 async def test_when_previous_data_is_out_of_date_then_new_date_is_retrieved():
@@ -410,13 +420,13 @@ async def test_when_previous_data_is_out_of_date_then_new_date_is_retrieved():
     saving_sessions_retrieved = True
     return SavingSessionsResponse([], [expected_saving_session], region)
   
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [], [expected_saving_session])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [], [expected_saving_session])
 
   with mock.patch.multiple(OctopusEnergyApiClient, async_get_saving_sessions=async_mocked_get_saving_sessions):
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -426,7 +436,7 @@ async def test_when_previous_data_is_out_of_date_then_new_date_is_retrieved():
 
     # Assert
     assert result is not None
-    assert result.next_refresh == current_utc_timestamp.replace(second=0, microsecond=0) + timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS)
+    assert result.next_refresh == current_utc_timestamp.replace(second=0, microsecond=0) + timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN)
     assert saving_sessions_retrieved == True
 
 @pytest.mark.asyncio
@@ -449,13 +459,13 @@ async def test_when_exception_raised_then_previous_data_is_returned_and_exceptio
     saving_sessions_retrieved = True
     raise raised_exception
   
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [], [SavingSession("1", "ABC", current_utc_timestamp + timedelta(minutes=1), current_utc_timestamp + timedelta(minutes=31), 1)])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [], [SavingSession("1", "ABC", current_utc_timestamp + timedelta(minutes=1), current_utc_timestamp + timedelta(minutes=31), 1)])
 
   with mock.patch.multiple(OctopusEnergyApiClient, async_get_saving_sessions=async_mocked_get_saving_sessions):
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -479,7 +489,7 @@ async def test_when_upcoming_events_present_and_region_is_none_then_not_in_upcom
   current_utc_timestamp = datetime.strptime(f'2022-02-12T00:00:00Z', "%Y-%m-%dT%H:%M:%S%z")
 
   account_id = "ABC123"
-  previous_data = SavingSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_SAVING_SESSIONS), 1, [], [])
+  previous_data = PowerDownSessionsCoordinatorResult(current_utc_timestamp - timedelta(minutes=REFRESH_RATE_IN_MINUTES_OCTOPLUS_POWER_DOWN), 1, [], [])
 
   actual_fired_events = {}
   def fire_event(name, metadata):
@@ -495,7 +505,7 @@ async def test_when_upcoming_events_present_and_region_is_none_then_not_in_upcom
     client = OctopusEnergyApiClient("NOT_REAL")
 
     # Act
-    result = await async_refresh_saving_sessions(
+    result = await async_refresh_power_down_sessions(
       current_utc_timestamp,
       client,
       account_id,
@@ -507,5 +517,6 @@ async def test_when_upcoming_events_present_and_region_is_none_then_not_in_upcom
     assert result is not None
     assert len(result.available_events) == 0
 
-    assert len(actual_fired_events) == 1
+    assert len(actual_fired_events) == 2
     assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_SAVING_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
+    assert_raised_all_saving_session_event(actual_fired_events[EVENT_ALL_POWER_DOWN_SESSIONS], account_id, [expected_saving_session], [expected_saving_session], [])
