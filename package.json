@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "prepare": "husky || true",
-    "build": "tsc ./.build/*.ts --noEmit",
+    "build": "tsc --project ./.build/tsconfig.json --noEmit",
     "release": "semantic-release",
+    "check-graphql-deprecations": "ts-node .build/checkGraphqlDeprecations.ts",
     "test-unit": "python -m pytest tests/unit",
     "test-integration": "python -m pytest tests/integration",
     "docs-serve": "python -m mkdocs serve",
@@ -38,5 +39,8 @@
     "commitizen": {
       "path": "node_modules/cz-customizable"
     }
+  },
+  "dependencies": {
+    "graphql": "^17.0.2"
   }
 }
