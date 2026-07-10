@@ -45,7 +45,6 @@ from .const import (
   DATA_ACCOUNT,
   INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLE_CHARGERS,
   INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLES,
-  REPAIR_FREE_ELECTRICITY_SESSION_BINARY_SENSOR_DEPRECATED,
   REPAIR_GREENNESS_FORECAST_BINARY_SENSOR_DEPRECATED,
 )
 
@@ -85,18 +84,6 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
     severity=ir.IssueSeverity.WARNING,
     translation_key="greenness_forecast_binary_sensor_deprecated",
   )
-
-  if octoplus_enrolled:
-    entities.append(OctopusEnergyFreeElectricitySessions(hass, free_electricity_session_coordinator, account_id))   
-    ir.async_create_issue(
-      hass,
-      DOMAIN,
-      REPAIR_FREE_ELECTRICITY_SESSION_BINARY_SENSOR_DEPRECATED,
-      is_fixable=False,
-      severity=ir.IssueSeverity.WARNING,
-      learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/architecture_decision_records/0003_move_to_calendar_entities_for_octoplus_events",
-      translation_key="free_electricity_session_binary_sensor_deprecated",
-    ) 
 
   if len(account_info["electricity_meter_points"]) > 0:
 

@@ -164,7 +164,6 @@ REPAIR_INTELLIGENT_DEVICE_CHANGED = "intelligent_device_changed_{}"
 REPAIR_INTELLIGENT_DEVICE_ADDED = "intelligent_device_added_{}"
 REPAIR_INTELLIGENT_DEVICE_REMOVED = "intelligent_device_removed_{}"
 REPAIR_TARIFF_RATES_EMPTY = "tariff_rates_empty_{}_{}"
-REPAIR_FREE_ELECTRICITY_SESSION_BINARY_SENSOR_DEPRECATED = "free_electricity_session_binary_sensor_deprecated"
 REPAIR_GREENNESS_FORECAST_BINARY_SENSOR_DEPRECATED = "greenness_forecast_session_binary_sensor_deprecated"
 REPAIR_TARGET_RATE_NOT_SUPPORTED = "target_rate_not_supported"
 

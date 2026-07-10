@@ -144,35 +144,6 @@ Each item within `baselines` consists of the following attributes
 
 These sensors are for [Octopus Free Electricity](https://octopus.energy/free-electricity/).
 
-### Free Electricity Sessions
-
-!!! warning 
-
-    This sensor has been deprecated in favour of [Free Electricity Sessions Calendar](#free-electricity-sessions-calendar) and will be removed around **May 2026**
-
-`binary_sensor.octopus_energy_{{ACCOUNT_ID}}_octoplus_free_electricity_session`
-
-Binary sensor to indicate if a free electricity session is active.
-
-!!! note
-    This will only be available if you have enrolled into Octoplus. Once enrolled, reload the integration to gain access to this sensor. This is only applicable if you have signed up to [free electricity sessions](https://octopus.energy/free-electricity/). This sensor uses public information supplied by https://github.com/BottlecapDave/OctopusEnergyApi.
-
-!!! note
-    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `current_event_start` | `datetime` | The datetime the current free electricity session started |
-| `current_event_end` | `datetime` | The datetime the current free electricity session will end |
-| `current_event_duration_in_minutes` | `float` | The duration in minutes of the current free electricity session |
-| `next_event_start` | `datetime` | The datetime the next free electricity session will start |
-| `next_event_end` | `datetime` | The datetime the next free electricity session will end |
-| `next_event_duration_in_minutes` | `float` | The duration in minutes of the next free electricity session |
-
-!!! info
-
-    You can use the [data_last_retrieved sensor](./diagnostics.md#free-electricity-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
-
 ### Free Electricity Sessions Calendar
 
 `calendar.octopus_energy_{{ACCOUNT_ID}}_octoplus_free_electricity_session`
