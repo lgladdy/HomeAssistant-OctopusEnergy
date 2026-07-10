@@ -47,7 +47,6 @@ from .const import (
   INTELLIGENT_DEVICE_KIND_ELECTRIC_VEHICLES,
   REPAIR_FREE_ELECTRICITY_SESSION_BINARY_SENSOR_DEPRECATED,
   REPAIR_GREENNESS_FORECAST_BINARY_SENSOR_DEPRECATED,
-  REPAIR_SAVING_SESSION_BINARY_SENSOR_DEPRECATED
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,19 +74,8 @@ async def async_setup_main_sensors(hass, entry, async_add_entities):
 
   now = utcnow()
   entities = [
-    OctopusEnergySavingSessions(hass, saving_session_coordinator, account_id),
     OctopusEnergyGreennessForecastHighlighted(hass, greenness_forecast_coordinator, account_id)
   ]
-
-  ir.async_create_issue(
-    hass,
-    DOMAIN,
-    REPAIR_SAVING_SESSION_BINARY_SENSOR_DEPRECATED,
-    is_fixable=False,
-    severity=ir.IssueSeverity.WARNING,
-    learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/architecture_decision_records/0003_move_to_calendar_entities_for_octoplus_events",
-    translation_key="saving_session_binary_sensor_deprecated",
-  )
 
   ir.async_create_issue(
     hass,

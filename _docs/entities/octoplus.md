@@ -20,29 +20,6 @@ Determines the current Octoplus points balance. This sensor will only be availab
 
 These sensors are for [Octopus Saving Sessions](https://octopus.energy/saving-sessions/).
 
-### Saving Sessions
-
-!!! warning 
-
-    This sensor has been deprecated in favour of [Saving Session Calendar](#saving-sessions-calendar) and will be removed around **May 2026**
-
-`binary_sensor.octopus_energy_{{ACCOUNT_ID}}_octoplus_saving_sessions`
-
-Binary sensor to indicate if a saving session that the account has joined is active.
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `current_joined_event_start` | `datetime` | The datetime the current saving session started |
-| `current_joined_event_end` | `datetime` | The datetime the current saving session will end |
-| `current_joined_event_duration_in_minutes` | `float` | The duration in minutes of the current saving session |
-| `next_joined_event_start` | `datetime` | The datetime the next saving session will start |
-| `next_joined_event_end` | `datetime` | The datetime the next saving session will end |
-| `next_joined_event_duration_in_minutes` | `float` | The duration in minutes of the next saving session |
-
-!!! info
-
-    You can use the [data_last_retrieved sensor](./diagnostics.md#saving-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
-
 ### Saving Sessions Calendar
 
 `calendar.octopus_energy_{{ACCOUNT_ID}}_octoplus_saving_sessions`
