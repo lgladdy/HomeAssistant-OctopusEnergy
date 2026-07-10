@@ -38,7 +38,7 @@ nav:
     - ./architecture_decision_records/0001_target_rates_removal.md
     - ./architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes.md
     - ./architecture_decision_records/0003_move_to_calendar_entities_for_octoplus_events.md
-    - ./architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions
+    - ./architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md
   - faq.md
   - sponsorship.md
   - Other Integrations: https://bottlecapdave.github.io/HomeAssistant-Integrations
