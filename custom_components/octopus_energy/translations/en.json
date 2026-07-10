@@ -302,10 +302,6 @@
       "title": "{meter_type} {tariff_code} rates are empty for {account_id} ({mprn_mpan}/{serial_number})",
       "description": "One of your meters ({mprn_mpan}/{serial_number}) is associated with tariff \"{tariff_code}\" for product \"{product_code}\", but no longer seems to be returning new rates. Please click \"Learn More\" with details on how to rectify this."
     },
-    "greenness_forecast_binary_sensor_deprecated": {
-      "title": "Greenness forecast highlighted binary sensor deprecated",
-      "description": "The greenness forecast highlighted binary sensor (`binary_sensor.octopus_energy_ACCOUNT_ID_greenness_forecast_highlighted`) has been deprecated in favour of using calendar entities. This will allow for better integration with automations and the calendar view. The deprecated sensor will be removed in May 2026. If you are using this sensor, please migrate all uses before the update around that time."
-    },
     "target_rate_not_supported": {
       "title": "Target rate configuration not supported",
       "description": "Configuration for target rates is now achieved via an additional integration and no longer provided as part of this integration. Please click \"Learn More\" for more information on how to migrate to the new way of creating target rate sensors."
