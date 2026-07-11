@@ -1,3 +1,4 @@
+import base64
 import logging
 import json
 from typing import Any, List
@@ -840,12 +841,26 @@ class OctopusEnergyApiClient:
         self._graphql_token = token_response_body["data"]["obtainKrakenToken"]["token"]
         self._graphql_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
-        self._graphql_expiration = now() + timedelta(hours=1)
+        self._graphql_expiration = self.__decode_jwt_expiry(self._graphql_token)
       elif (self._graphql_expiration is None or self._graphql_expiration < now()):
         raise AuthenticationException("Failed to retrieve auth token and current token is expired", [])
       else:
         _LOGGER.error("Failed to retrieve auth token")
+
+  def __decode_jwt_expiry(self, token: str):
+    try:
+      payload = token.split(".")[1]
+      payload += "=" * (-len(payload) % 4)
+      claims = json.loads(base64.urlsafe_b64decode(payload))
+
+      if "exp" in claims:
+        return datetime.fromtimestamp(claims["exp"], tz=timezone.utc)
       
+      raise Exception("Failed to decode JWT expiry - no 'exp' claim found")
+    except Exception:
+      _LOGGER.debug("Failed to decode JWT expiry - falling back to default expiration", exc_info=True)
+      raise
+
   def map_electricity_meters(self, meter_point):
     is_export = (meter_point["meterPoint"]["direction"] == 'EXPORT') \
       if "meterPoint" in meter_point and "direction" in meter_point["meterPoint"] and meter_point["meterPoint"]["direction"] is not None \
@@ -2207,6 +2222,11 @@ class OctopusEnergyApiClient:
         raise ServerException(msg)
       elif response.status in [401, 403]:
         msg = f'Response received - {url} ({request_context}) - Unauthenticated request: {response.status}; {text}'
+        # Reset the GraphQL token and refresh token so that we can re-authenticate on the next request
+        self._graphql_token = None
+        self._graphql_expiration = None
+        self._graphql_refresh_token = None
+        self._graphql_refresh_token_expiration = None
         _LOGGER.warning(msg)
         raise AuthenticationException(msg, [])
       elif response.status not in [404]:
