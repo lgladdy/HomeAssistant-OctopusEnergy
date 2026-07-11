@@ -45,7 +45,7 @@ api_token_refresh_query = '''mutation {{
 
 account_query = '''query {{
   octoplusAccountInfo(accountNumber: "{account_id}") {{
-    isOctoplusEnrolled
+    enrollmentStatus
   }}
   properties(accountNumber: "{account_id}") {{
       id
@@ -1000,8 +1000,8 @@ class OctopusEnergyApiClient:
             account_response_body["data"]["account"] is not None):
           return {
             "id": account_id,
-            "octoplus_enrolled": account_response_body["data"]["octoplusAccountInfo"]["isOctoplusEnrolled"] == True 
-            if "octoplusAccountInfo" in account_response_body["data"] and "isOctoplusEnrolled" in account_response_body["data"]["octoplusAccountInfo"]
+            "octoplus_enrolled": account_response_body["data"]["octoplusAccountInfo"]["enrollmentStatus"] == "ENROLLED" 
+            if "octoplusAccountInfo" in account_response_body["data"] and "enrollmentStatus" in account_response_body["data"]["octoplusAccountInfo"]
             else False,
             "property_ids": list(
               self.map_properties(
