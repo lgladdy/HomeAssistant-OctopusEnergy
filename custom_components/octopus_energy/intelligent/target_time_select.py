@@ -41,8 +41,8 @@ class OctopusEnergyIntelligentTargetTimeSelect(CoordinatorEntity, SelectEntity, 
     self.entity_id = generate_entity_id("select.{}", self.unique_id, hass=hass)
 
     self._options = []
-    current_time = datetime(2025, 1, 1, 4, 0)
-    final_time = datetime(2025, 1, 1, 11, 30)
+    current_time = datetime(2025, 1, 1, 0, 0)
+    final_time = datetime(2025, 1, 1, 23, 30)
     while current_time < final_time:
       self._options.append(f"{current_time.hour:02}:{current_time.minute:02}")
       current_time = current_time + timedelta(minutes=30)
