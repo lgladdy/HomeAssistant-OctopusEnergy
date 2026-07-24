@@ -81,6 +81,7 @@ from .heat_pump.live_heat_output import OctopusEnergyHeatPumpLiveHeatOutput
 from .heat_pump.live_power_input import OctopusEnergyHeatPumpLivePowerInput
 from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import OctopusEnergyIntelligentCurrentState
+from .intelligent.state_of_charge import OctopusEnergyIntelligentStateOfCharge
 from .intelligent import get_intelligent_features
 
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
@@ -327,7 +328,9 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
       intelligent_features = get_intelligent_features(intelligent_device.provider)
       if intelligent_features.current_state_supported:
         entities.append(OctopusEnergyIntelligentCurrentState(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
-                      
+
+      entities.append(OctopusEnergyIntelligentStateOfCharge(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
+
     intelligent_settings_coordinator = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_SETTINGS_COORDINATOR.format(intelligent_device.id)] if DATA_INTELLIGENT_SETTINGS_COORDINATOR.format(intelligent_device.id) in hass.data[DOMAIN][account_id] else None
     if intelligent_settings_coordinator is not None:
       entities.append(OctopusEnergyIntelligentSettingsDataLastRetrieved(hass, intelligent_settings_coordinator, account_id, intelligent_device))
