@@ -111,6 +111,16 @@ Please follow the [guide](./setup/energy_dashboard.md#previous-day-consumption) 
 
 You should not have this issue for current consumption sensors, as they are updated in realtime.
 
+## Sensors relating to my Home Mini have stopped updating (e.g. current electricity consumption). Is this a problem with the integration?
+
+While the Home Mini is local, the data unfortunately can't be polled directly and instead has to go via the OE servers.
+
+The first thing to check is if the Home Mini is communicating with the OE servers. This can be confirmed by going to the "my energy" section of the website. If the website isn't reporting live data or has any data populated for today in the daily view, then it means there's something wrong with the connection between the Home Mini and the OE servers. This can be for a number of reasons
+
+The first thing to check is if the Home Mini hasn't frozen. There have been reports of this happening, especially in hot weather or locations. A quick reboot (turn it off and on again) usually fixes the problem. If this isn't the issue, then it might be worth looking at the [FAQ](https://octopus.energy/octopus-home-mini-faq).
+
+If your Home Mini is reporting data on the OE website, then please raise an [issue](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues). Please include diagnostic data and an hour worth of debug Home Assistant logs.
+
 ## Why are the names of the entities so long, and can you change them to be shorter?
 
 Naming things are hard. The entity ids are long for the following reasons
