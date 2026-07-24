@@ -31,6 +31,7 @@ from ..storage.intelligent_dispatches import async_save_cached_intelligent_dispa
 from ..intelligent import clean_intelligent_dispatch_history, clean_previous_dispatches, has_dispatches_changed, has_intelligent_tariff, mock_intelligent_dispatches
 from ..coordinators.intelligent_device import IntelligentDeviceCoordinatorResult
 from ..storage.intelligent_dispatches_history import IntelligentDispatchesHistory, async_save_cached_intelligent_dispatches_history
+from ..utils.datetime import round_down_to_nearest_half_hour
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ def merge_started_dispatches(current: datetime,
           continue
 
         is_extended = False
-        start = current.replace(minute=0 if current.minute < 30 else 30, second=0, microsecond=0)
+        start = round_down_to_nearest_half_hour(current)
         end = start + timedelta(minutes=30)
         for started_dispatch in new_started_dispatches:
           if (started_dispatch.end == end):

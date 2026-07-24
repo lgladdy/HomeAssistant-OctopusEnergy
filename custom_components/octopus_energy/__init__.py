@@ -61,6 +61,7 @@ from .const import (
   CONFIG_MAIN_HOME_PRO_ADDRESS,
   CONFIG_MAIN_HOME_PRO_API_KEY,
   CONFIG_MAIN_HOME_PRO_SETTINGS,
+  CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP,
   CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
@@ -393,6 +394,11 @@ async def async_setup_dependencies(hass, config):
         minimum_dispatch_duration_in_minutes = (config[CONFIG_MAIN_INTELLIGENT_SETTINGS][CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES] 
                                  if CONFIG_MAIN_INTELLIGENT_SETTINGS in config and CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES in config[CONFIG_MAIN_INTELLIGENT_SETTINGS] 
                                  else CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES)
+        
+        enforce_intelligent_cap = (config[CONFIG_MAIN_INTELLIGENT_SETTINGS][CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP]
+                                   if CONFIG_MAIN_INTELLIGENT_SETTINGS in config and CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP in config[CONFIG_MAIN_INTELLIGENT_SETTINGS]
+                                   else False)
+
         await async_setup_electricity_rates_coordinator(hass,
                                                         account_id,
                                                         mpan,
@@ -401,7 +407,8 @@ async def async_setup_dependencies(hass, config):
                                                         is_export_meter,
                                                         intelligent_rate_mode,
                                                         tariff_override,
-                                                        minimum_dispatch_duration_in_minutes)
+                                                        minimum_dispatch_duration_in_minutes,
+                                                        enforce_intelligent_cap)
 
   mock_heat_pump = account_debug_override.mock_heat_pump if account_debug_override is not None else False
   if mock_heat_pump:

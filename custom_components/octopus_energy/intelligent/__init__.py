@@ -12,6 +12,7 @@ from ..storage.intelligent_dispatches_history import IntelligentDispatchesHistor
 from ..api_client.intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches, SimpleIntelligentDispatchItem
 from ..api_client.intelligent_device import IntelligentDevice
 from ..api_client.intelligent_device_settings import IntelligentDeviceSettings
+from ..utils.datetime import round_down_to_nearest_half_hour, round_up_to_nearest_half_hour
 
 mock_intelligent_data_key = "MOCK_INTELLIGENT_DATA"
 
@@ -287,11 +288,17 @@ def get_applicable_dispatch_periods(planned_dispatches: list[IntelligentDispatch
   dispatches.sort(key = lambda x: x.start)
   return dispatches
 
+def is_dispatch_within_time_frame(dispatch: SimpleIntelligentDispatchItem, start: datetime, end: datetime):
+  return ((dispatch.start <= start and dispatch.end >= end) or
+          (dispatch.start >= start and dispatch.start < end) or
+          (dispatch.end > start and dispatch.end <= end))
+
 def adjust_intelligent_rates(rates,
                              planned_dispatches: list[IntelligentDispatchItem],
                              started_dispatches: list[SimpleIntelligentDispatchItem],
                              mode: str,
-                             minimum_dispatch_duration_in_minutes: int = 0):
+                             minimum_dispatch_duration_in_minutes: int = 0,
+                             enforce_cap: bool = False):
   if rates is None or len(rates) < 1:
     return rates
 
@@ -307,23 +314,25 @@ def adjust_intelligent_rates(rates,
 
     applicable_dispatch: SimpleIntelligentDispatchItem | None = next(
       (dispatch for dispatch in applicable_dispatches 
-      if (dispatch.start <= rate["start"] and dispatch.end >= rate["end"]) or # Rate is within dispatch
-          (dispatch.start >= rate["start"] and dispatch.start < rate["end"]) or # dispatch starts within rate
-          (dispatch.end > rate["start"] and dispatch.end <= rate["end"]) # dispatch ends within rate
+      if is_dispatch_within_time_frame(dispatch, rate["start"], rate["end"])
       ),
       None
     )
 
     if (applicable_dispatch is not None):
-      _LOGGER.debug(f"Adjusting rate from {rate['value_inc_vat']} to {off_peak_rate['value_inc_vat']} due to applicable dispatch from {applicable_dispatch.start} to {applicable_dispatch.end}")
-      adjusted_rates.append({
-        "start": rate["start"],
-        "end": rate["end"],
-        "tariff_code": rate["tariff_code"],
-        "value_inc_vat": off_peak_rate["value_inc_vat"],
-        "is_capped": rate["is_capped"] if "is_capped" in rate else False,
-        "is_intelligent_adjusted": True
-      })
+      if enforce_cap and is_within_intelligent_cap(rate["end"], applicable_dispatches) == False:
+        _LOGGER.debug(f"Skipping adjusting rate at {rate['start']} from {rate['value_inc_vat']} to {off_peak_rate['value_inc_vat']} due to exceeding dispatch cap for the day")
+        adjusted_rates.append(rate)
+      else:
+        _LOGGER.debug(f"Adjusting rate from {rate['value_inc_vat']} to {off_peak_rate['value_inc_vat']} due to applicable dispatch from {applicable_dispatch.start} to {applicable_dispatch.end}")
+        adjusted_rates.append({
+          "start": rate["start"],
+          "end": rate["end"],
+          "tariff_code": rate["tariff_code"],
+          "value_inc_vat": off_peak_rate["value_inc_vat"],
+          "is_capped": rate["is_capped"] if "is_capped" in rate else False,
+          "is_intelligent_adjusted": True
+        })
     else:
       adjusted_rates.append(rate)
     
@@ -518,3 +527,49 @@ def get_applicable_intelligent_dispatch_history(history: IntelligentDispatchesHi
       break
 
   return applicable_history_item
+
+def get_dispatch_hours_for_intelligent_day(current: datetime, dispatches: list[SimpleIntelligentDispatchItem], cap_to_current = False) -> float:
+  if (current.hour < 12):
+    start = (current - timedelta(days=1)).replace(hour=12, minute=0, second=0, microsecond=0)
+  else:
+    start = current.replace(hour=12, minute=0, second=0, microsecond=0)
+  end = start + timedelta(days=1)
+
+  _LOGGER.debug(f"Calculating dispatch hours for intelligent day at {current} from {start} to {end}")
+
+  hours = 0
+  existing_dispatches = []
+  for dispatch in dispatches:
+    if is_dispatch_within_time_frame(dispatch, start, end) == False:
+      continue
+
+    dispatch_exists = False
+    dispatch_end = dispatch.end
+    if cap_to_current:
+      dispatch_end = min(dispatch_end, current)
+
+    for existing_dispatch in existing_dispatches:
+      # If the dispatch starts within the existing dispatch, extend the end
+      if (dispatch.start >= existing_dispatch.start and dispatch.start <= existing_dispatch.end):
+        existing_dispatch.end = min(dispatch_end, max(existing_dispatch.end, dispatch_end))
+        existing_dispatch.end = round_up_to_nearest_half_hour(existing_dispatch.end)
+        dispatch_exists = True
+      # If the dispatch ends within the existing dispatch, extend the start
+      if (dispatch_end <= existing_dispatch.end and dispatch_end >= existing_dispatch.start):
+        existing_dispatch.start = min(existing_dispatch.start, dispatch.start)
+        existing_dispatch.start = round_down_to_nearest_half_hour(existing_dispatch.start)
+        dispatch_exists = True
+
+    if dispatch_exists == False:
+      existing_dispatches.append(SimpleIntelligentDispatchItem(round_down_to_nearest_half_hour(dispatch.start), round_up_to_nearest_half_hour(dispatch_end)))
+
+  for dispatch in existing_dispatches:
+    hours += (dispatch.end - dispatch.start).total_seconds() / 3600
+
+  return hours
+
+def is_within_intelligent_cap(current: datetime, dispatches: list[SimpleIntelligentDispatchItem]) -> bool:
+  hours = get_dispatch_hours_for_intelligent_day(current, dispatches, True)
+
+  _LOGGER.debug(f"Dispatch hours at {current} is {hours}")
+  return hours <= 6
