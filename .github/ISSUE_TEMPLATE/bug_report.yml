@@ -73,9 +73,19 @@ body:
     id: confirm
     attributes:
       label: Confirmation
-      description: 
+      description: ""
       options:
         - label: I confirm that I cannot find my solution within the [documentation](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy)
           required: true
         - label: I confirm that I cannot find my solution within the [FAQ](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/faq)
           required: true
+  - type: checkboxes
+    id: ai-triage-consent
+    attributes:
+      label: AI Triage
+      description: >-
+        This repository uses an AI assistant to help triage new issues (for example, suggesting relevant
+        documentation, or flagging a likely root cause to the maintainer). This is optional - if you don't consent,
+        your issue is still triaged by the maintainer as normal, just without the automated help.
+      options:
+        - label: I consent to this issue, including any text or logs I provide, being processed by an AI assistant for automated triage

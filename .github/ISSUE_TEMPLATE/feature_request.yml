@@ -29,8 +29,18 @@ body:
     id: docs
     attributes:
       label: Confirmation
-      description: 
+      description: ""
       options:
         - label: By submitting this feature request, you agree that you have read the [documentation](https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy) and confirmed it does not already exist
           required: true
         - label: I am willing/able to help contribute to the solution of this feature
+  - type: checkboxes
+    id: ai-triage-consent
+    attributes:
+      label: AI Triage
+      description: >-
+        This repository uses an AI assistant to help triage new issues (for example, suggesting relevant GraphQL
+        API endpoints that could implement the feature). This is optional - if you don't consent, your issue is
+        your issue is still triaged by the maintainer as normal, just without the automated help.
+      options:
+        - label: I consent to this issue, including any text I provide, being processed by an AI assistant for automated triage

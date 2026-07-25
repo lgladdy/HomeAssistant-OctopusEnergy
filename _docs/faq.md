@@ -111,7 +111,7 @@ Please follow the [guide](./setup/energy_dashboard.md#previous-day-consumption) 
 
 You should not have this issue for current consumption sensors, as they are updated in realtime.
 
-## Sensors relating to my Home Mini have stopped updating (e.g. current electricity consumption). Is this a problem with the integration?
+## Sensors relating to my Home Mini have stopped updating or reporting as unknown (e.g. current electricity consumption). Is this a problem with the integration?
 
 While the Home Mini is local, the data unfortunately can't be polled directly and instead has to go via the OE servers.
 

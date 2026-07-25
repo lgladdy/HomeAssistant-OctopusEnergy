@@ -1,0 +1,31 @@
+name: Triage new issue
+
+on:
+  issues:
+    types: [opened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: ${{ github.repository_owner == 'BottlecapDave' }}
+    name: Triage issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup
+        uses: ./.github/actions/setup
+      - name: Install dependencies
+        run: npm ci
+      - name: Run triage
+        run: npm run triage-new-issue
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY_AI_TRIAGE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
