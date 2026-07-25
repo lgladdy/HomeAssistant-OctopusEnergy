@@ -209,6 +209,27 @@ This gives you finer control over the times (still within valid time periods), b
 !!! note
     This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). If enabled, it is advised to disable the [select based sensor](#target-time-select) as the two can get out of sync. 
 
+## Charge Cap Hours
+
+`sensor.octopus_energy_{{DEVICE_ID}}_intelligent_charge_cap_hours`
+
+This sensor gives the number of hours used for dispatches during the current daily cap period (e.g. 12 noon to 12 noon).
+
+This is built from dispatches that have started due to incomplete data being available from completed dispatches (no way of knowing if a completed dispatch was from a boost charge or a planned dispatch).
+
+!!! info
+
+    This entity is not available for the following intelligent providers
+
+    * OHME
+
+    This is due to started dispatches not being supported.
+
+!!! info
+
+    You can use the [data_last_retrieved sensor](./diagnostics.md#intelligent-settings-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+
+
 ## Migrating from megakid/ha_octopus_intelligent?
 
 If you're moving to this integration from [megakid/ha_octopus_intelligent](https://github.com/megakid/ha_octopus_intelligent), below is a quick guide on what entities you should use

@@ -83,6 +83,7 @@ from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import OctopusEnergyIntelligentCurrentState
 from .intelligent.state_of_charge import OctopusEnergyIntelligentStateOfCharge
 from .intelligent import get_intelligent_features
+from .intelligent.charge_cap_hours import OctopusEnergyIntelligentChargeCapHours
 
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
 
@@ -328,6 +329,9 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
       intelligent_features = get_intelligent_features(intelligent_device.provider)
       if intelligent_features.current_state_supported:
         entities.append(OctopusEnergyIntelligentCurrentState(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
+
+      if intelligent_features.planned_dispatches_supported:
+        entities.append(OctopusEnergyIntelligentChargeCapHours(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
 
       entities.append(OctopusEnergyIntelligentStateOfCharge(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
 
