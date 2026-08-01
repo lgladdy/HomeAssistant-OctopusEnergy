@@ -6,7 +6,6 @@ import aiohttp
 import asyncio
 from asyncio import TimeoutError
 from datetime import (datetime, timedelta, time, timezone)
-from zoneinfo import ZoneInfo
 
 from homeassistant.util.dt import (as_utc, now, as_local, parse_datetime, parse_date)
 
@@ -21,7 +20,6 @@ from .octoplus import RedeemOctoplusPointsResponse
 from .intelligent_dispatches import DecimalReading, IntelligentDispatchItem, IntelligentDispatches
 from .saving_sessions import JoinSavingSessionResponse, SavingSession, SavingSessionsResponse
 from .wheel_of_fortune import WheelOfFortuneSpinsResponse
-from .greenness_forecast import GreennessForecast
 from .free_electricity_sessions import FreeElectricitySession, FreeElectricitySessionsResponse
 from .heat_pump import HeatPumpResponse
 from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSchedule, IntelligentDeviceSettings
@@ -341,15 +339,6 @@ backend_wheel_of_fortune_mutation = '''mutation {{
     }}
   }}
 }}'''
-
-backend_greener_night_forecast_query = '''query {
-  greenerNightsForecast {
-    date
-    isGreenerNight
-    greennessScore
-    greennessIndex
-  }
-}'''
 
 redeem_octoplus_points_account_credit_mutation = '''mutation {{
   redeemLoyaltyPointsForAccountCredit(input: {{
@@ -1198,38 +1187,6 @@ class OctopusEnergyApiClient:
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as heat_pump_response:
         await self.__async_read_response__(heat_pump_response, url)
-    
-    except TimeoutError:
-      _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
-      raise TimeoutException()
-    
-  async def async_get_greener_nights_forecast(self) -> list[GreennessForecast]:
-    """Get the latest greenness forecast"""
-    await self.async_refresh_token()
-
-    try:
-      request_context = "greener-night-forecast"
-      client = await self._create_client_session()
-      url = f'{self._backend_base_url}/v1/graphql/'
-      payload = { "query": backend_greener_night_forecast_query }
-      headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
-      async with client.post(url, json=payload, headers=headers) as greener_night_forecast_response:
-
-        response_body = await self.__async_read_response__(greener_night_forecast_response, url)
-        if (response_body is not None and "data" in response_body and "greenerNightsForecast" in response_body["data"]):
-          london_tz = ZoneInfo("Europe/London")
-          forecast = list(
-            map(lambda item: GreennessForecast(
-              parse_datetime(f"{item["date"]}T23:00:00").astimezone(london_tz),
-              parse_datetime(f"{item["date"]}T06:00:00").astimezone(london_tz) + timedelta(days=1),
-              int(item["greennessScore"]),
-              item["greennessIndex"],
-              item["isGreenerNight"]
-            ),
-            response_body["data"]["greenerNightsForecast"])
-          )
-          forecast.sort(key=lambda item: item.start)
-          return forecast
     
     except TimeoutError:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')

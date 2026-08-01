@@ -41,8 +41,6 @@ from .wheel_of_fortune.gas_spins import OctopusEnergyWheelOfFortuneGasSpins
 from .cost_tracker.cost_tracker import OctopusEnergyCostTrackerSensor
 from .cost_tracker.cost_tracker_week import OctopusEnergyCostTrackerWeekSensor
 from .cost_tracker.cost_tracker_month import OctopusEnergyCostTrackerMonthSensor
-from .greenness_forecast.current_index import OctopusEnergyGreennessForecastCurrentIndex
-from .greenness_forecast.next_index import OctopusEnergyGreennessForecastNextIndex
 from .octoplus.free_electricity_session_baseline import OctopusEnergyFreeElectricitySessionBaseline
 from .octoplus.power_up_baseline import OctopusEnergyPowerUpBaseline
 from .octoplus.power_down_baseline import OctopusEnergyPowerDownBaseline
@@ -52,7 +50,6 @@ from .diagnostics_entities.gas_current_consumption_data_last_retrieved import Oc
 from .diagnostics_entities.electricity_rates_data_last_retrieved import OctopusEnergyElectricityCurrentRatesDataLastRetrieved
 from .diagnostics_entities.electricity_previous_consumption_and_rates_data_last_retrieved import OctopusEnergyElectricityPreviousConsumptionAndRatesDataLastRetrieved
 from .diagnostics_entities.electricity_standing_charge_data_last_retrieved import OctopusEnergyElectricityCurrentStandingChargeDataLastRetrieved
-from .diagnostics_entities.greenness_forecast_data_last_retrieved import OctopusEnergyGreennessForecastDataLastRetrieved
 from .diagnostics_entities.saving_sessions_data_last_retrieved import OctopusEnergySavingSessionsDataLastRetrieved
 from .diagnostics_entities.wheel_of_fortune_data_last_retrieved import OctopusEnergyWheelOfFortuneDataLastRetrieved
 from .diagnostics_entities.intelligent_dispatches_data_last_retrieved import OctopusEnergyIntelligentDispatchesDataLastRetrieved
@@ -129,7 +126,6 @@ from .const import (
   CONFIG_TARIFF_COMPARISON_MPAN_MPRN,
   DATA_POWER_UP_SESSIONS_COORDINATOR,
   DATA_ACCOUNT_COORDINATOR,
-  DATA_GREENNESS_FORECAST_COORDINATOR,
   DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_COORDINATOR,
   DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_KEY,
   DATA_HEAT_PUMP_IDS,
@@ -302,15 +298,11 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
   account_info = account_result.account if account_result is not None else None
 
   wheel_of_fortune_coordinator = await async_setup_wheel_of_fortune_spins_coordinator(hass, account_id)
-  greenness_forecast_coordinator = hass.data[DOMAIN][account_id][DATA_GREENNESS_FORECAST_COORDINATOR]
   
   entities = [
     OctopusEnergyAccountDataLastRetrieved(hass, hass.data[DOMAIN][account_id][DATA_ACCOUNT_COORDINATOR], account_id),
     OctopusEnergyWheelOfFortuneElectricitySpins(hass, wheel_of_fortune_coordinator, client, account_id),
     OctopusEnergyWheelOfFortuneGasSpins(hass, wheel_of_fortune_coordinator, client, account_id),
-    OctopusEnergyGreennessForecastCurrentIndex(hass, greenness_forecast_coordinator, account_id),
-    OctopusEnergyGreennessForecastNextIndex(hass, greenness_forecast_coordinator, account_id),
-    OctopusEnergyGreennessForecastDataLastRetrieved(hass, greenness_forecast_coordinator, account_id),
     OctopusEnergyPowerDownDataLastRetrieved(hass, power_down_coordinator, account_id),
     OctopusEnergyWheelOfFortuneDataLastRetrieved(hass, wheel_of_fortune_coordinator, account_id)
   ]
