@@ -1,3 +1,4 @@
+import base64
 import logging
 import json
 from typing import Any, List
@@ -5,7 +6,6 @@ import aiohttp
 import asyncio
 from asyncio import TimeoutError
 from datetime import (datetime, timedelta, time, timezone)
-from zoneinfo import ZoneInfo
 
 from homeassistant.util.dt import (as_utc, now, as_local, parse_datetime, parse_date)
 
@@ -17,10 +17,9 @@ from ..utils import (
 
 from .intelligent_device import IntelligentDevice
 from .octoplus import RedeemOctoplusPointsResponse
-from .intelligent_dispatches import IntelligentDispatchItem, IntelligentDispatches
+from .intelligent_dispatches import DecimalReading, IntelligentDispatchItem, IntelligentDispatches
 from .saving_sessions import JoinSavingSessionResponse, SavingSession, SavingSessionsResponse
 from .wheel_of_fortune import WheelOfFortuneSpinsResponse
-from .greenness_forecast import GreennessForecast
 from .free_electricity_sessions import FreeElectricitySession, FreeElectricitySessionsResponse
 from .heat_pump import HeatPumpResponse
 from .intelligent_device_settings import IntelligentDeviceSettingPreferenceSchedule, IntelligentDeviceSettings
@@ -45,7 +44,7 @@ api_token_refresh_query = '''mutation {{
 
 account_query = '''query {{
   octoplusAccountInfo(accountNumber: "{account_id}") {{
-    isOctoplusEnrolled
+    enrollmentStatus
   }}
   properties(accountNumber: "{account_id}") {{
       id
@@ -141,6 +140,18 @@ intelligent_dispatches_query = '''query {{
 		id
     status {{
       currentState
+      ... on SmartFlexVehicleStatus {{
+        stateOfCharge {{
+          value
+          timestamp
+        }}
+      }}
+      ... on SmartFlexChargePointStatus {{
+        stateOfCharge {{
+          value
+          timestamp
+        }}
+      }}
     }}
   }}
   flexPlannedDispatches(deviceId:"{device_id}") {{
@@ -328,15 +339,6 @@ backend_wheel_of_fortune_mutation = '''mutation {{
     }}
   }}
 }}'''
-
-backend_greener_night_forecast_query = '''query {
-  greenerNightsForecast {
-    date
-    isGreenerNight
-    greennessScore
-    greennessIndex
-  }
-}'''
 
 redeem_octoplus_points_account_credit_mutation = '''mutation {{
   redeemLoyaltyPointsForAccountCredit(input: {{
@@ -840,12 +842,26 @@ class OctopusEnergyApiClient:
         self._graphql_token = token_response_body["data"]["obtainKrakenToken"]["token"]
         self._graphql_refresh_token = token_response_body["data"]["obtainKrakenToken"]["refreshToken"]
         self._graphql_refresh_expiration = datetime.fromtimestamp(token_response_body["data"]["obtainKrakenToken"]["refreshExpiresIn"], tz=timezone.utc)
-        self._graphql_expiration = now() + timedelta(hours=1)
+        self._graphql_expiration = self.__decode_jwt_expiry(self._graphql_token)
       elif (self._graphql_expiration is None or self._graphql_expiration < now()):
         raise AuthenticationException("Failed to retrieve auth token and current token is expired", [])
       else:
         _LOGGER.error("Failed to retrieve auth token")
+
+  def __decode_jwt_expiry(self, token: str):
+    try:
+      payload = token.split(".")[1]
+      payload += "=" * (-len(payload) % 4)
+      claims = json.loads(base64.urlsafe_b64decode(payload))
+
+      if "exp" in claims:
+        return datetime.fromtimestamp(claims["exp"], tz=timezone.utc)
       
+      raise Exception("Failed to decode JWT expiry - no 'exp' claim found")
+    except Exception:
+      _LOGGER.debug("Failed to decode JWT expiry - falling back to default expiration", exc_info=True)
+      raise
+
   def map_electricity_meters(self, meter_point):
     is_export = (meter_point["meterPoint"]["direction"] == 'EXPORT') \
       if "meterPoint" in meter_point and "direction" in meter_point["meterPoint"] and meter_point["meterPoint"]["direction"] is not None \
@@ -1000,8 +1016,8 @@ class OctopusEnergyApiClient:
             account_response_body["data"]["account"] is not None):
           return {
             "id": account_id,
-            "octoplus_enrolled": account_response_body["data"]["octoplusAccountInfo"]["isOctoplusEnrolled"] == True 
-            if "octoplusAccountInfo" in account_response_body["data"] and "isOctoplusEnrolled" in account_response_body["data"]["octoplusAccountInfo"]
+            "octoplus_enrolled": account_response_body["data"]["octoplusAccountInfo"]["enrollmentStatus"] == "ENROLLED" 
+            if "octoplusAccountInfo" in account_response_body["data"] and "enrollmentStatus" in account_response_body["data"]["octoplusAccountInfo"]
             else False,
             "property_ids": list(
               self.map_properties(
@@ -1171,38 +1187,6 @@ class OctopusEnergyApiClient:
       headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
       async with client.post(url, json=payload, headers=headers) as heat_pump_response:
         await self.__async_read_response__(heat_pump_response, url)
-    
-    except TimeoutError:
-      _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
-      raise TimeoutException()
-    
-  async def async_get_greener_nights_forecast(self) -> list[GreennessForecast]:
-    """Get the latest greenness forecast"""
-    await self.async_refresh_token()
-
-    try:
-      request_context = "greener-night-forecast"
-      client = await self._create_client_session()
-      url = f'{self._backend_base_url}/v1/graphql/'
-      payload = { "query": backend_greener_night_forecast_query }
-      headers = { "Authorization": f"{self._graphql_token}", integration_context_header: request_context }
-      async with client.post(url, json=payload, headers=headers) as greener_night_forecast_response:
-
-        response_body = await self.__async_read_response__(greener_night_forecast_response, url)
-        if (response_body is not None and "data" in response_body and "greenerNightsForecast" in response_body["data"]):
-          london_tz = ZoneInfo("Europe/London")
-          forecast = list(
-            map(lambda item: GreennessForecast(
-              parse_datetime(f"{item["date"]}T23:00:00").astimezone(london_tz),
-              parse_datetime(f"{item["date"]}T06:00:00").astimezone(london_tz) + timedelta(days=1),
-              int(item["greennessScore"]),
-              item["greennessIndex"],
-              item["isGreenerNight"]
-            ),
-            response_body["data"]["greenerNightsForecast"])
-          )
-          forecast.sort(key=lambda item: item.start)
-          return forecast
     
     except TimeoutError:
       _LOGGER.warning(f'Failed to connect. Timeout of {self._timeout} exceeded.')
@@ -1746,10 +1730,13 @@ class OctopusEnergyApiClient:
         _LOGGER.debug(f'async_get_intelligent_dispatches: {response_body}')
 
         current_state = None
+        state_of_charge = None
         if (response_body is not None and "data" in response_body and "devices" in response_body["data"]):
           for device in response_body["data"]["devices"]:
             if device["id"] == device_id:
               current_state = device["status"]["currentState"]
+              if ("stateOfCharge" in device["status"] and device["status"]["stateOfCharge"] is not None):
+                state_of_charge = DecimalReading.model_validate(device["status"]["stateOfCharge"])
 
         if (response_body is not None and "data" in response_body):
           planned_dispatches = list(map(lambda ev: IntelligentDispatchItem(
@@ -1780,7 +1767,8 @@ class OctopusEnergyApiClient:
           return IntelligentDispatches(
             current_state,
             planned_dispatches,
-            completed_dispatches
+            completed_dispatches,
+            state_of_charge=state_of_charge
           )
         else:
           _LOGGER.error("Failed to retrieve intelligent dispatches")
@@ -2207,6 +2195,11 @@ class OctopusEnergyApiClient:
         raise ServerException(msg)
       elif response.status in [401, 403]:
         msg = f'Response received - {url} ({request_context}) - Unauthenticated request: {response.status}; {text}'
+        # Reset the GraphQL token and refresh token so that we can re-authenticate on the next request
+        self._graphql_token = None
+        self._graphql_expiration = None
+        self._graphql_refresh_token = None
+        self._graphql_refresh_token_expiration = None
         _LOGGER.warning(msg)
         raise AuthenticationException(msg, [])
       elif response.status not in [404]:

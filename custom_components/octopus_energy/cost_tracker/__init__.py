@@ -5,6 +5,7 @@ from homeassistant.components.sensor import (
   SensorStateClass,
 )
 
+from ..utils.datetime import round_down_to_nearest_half_hour
 from ..utils.conversions import pence_to_pounds_pence, round_pounds, pence_to_pounds_pence_accurate, consumption_cost_in_pence
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def add_consumption(current: datetime,
     return
 
   start_of_day = current.replace(hour=0, minute=0, second=0, microsecond=0)
-  target_start = current.replace(minute=(0 if current.minute < 30 else 30), second=0, microsecond=0)
+  target_start = round_down_to_nearest_half_hour(current)
   target_end = target_start + timedelta(minutes=30)
 
   new_tracked_consumption_data = tracked_consumption_data.copy()

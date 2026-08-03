@@ -31,6 +31,7 @@ from .const import (
   CONFIG_MAIN_HOME_PRO_ADDRESS,
   CONFIG_MAIN_HOME_PRO_API_KEY,
   CONFIG_MAIN_HOME_PRO_SETTINGS,
+  CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP,
   CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
@@ -219,6 +220,7 @@ class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
                   )
                 ),
                 vol.Required(CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES, default=CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES): cv.positive_int,
+                vol.Required(CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP, default=False): bool,
             }
         ),
         {"collapsed": True},

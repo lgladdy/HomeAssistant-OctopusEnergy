@@ -16,32 +16,127 @@ Determines the current Octoplus points balance. This sensor will only be availab
 | `redeemable_points` | `integer` | The number of points that can be redeemed into account credit |
 | `data_last_retrieved` | `datetime` | The date/time the underlying data was last retrieved from Octopus Energy APIs |
 
-## Octopus Saving Sessions
+## Octopus Power Down
 
-These sensors are for [Octopus Saving Sessions](https://octopus.energy/saving-sessions/).
+These sensors are for [Octopus Saving Sessions](https://octopus.energy/saving-sessions/), branded as "Power Down" sessions.
 
-### Saving Sessions
+### Power Down Calendar
 
-!!! warning 
+`calendar.octopus_energy_{{ACCOUNT_ID}}_octoplus_power_down`
 
-    This sensor has been deprecated in favour of [Saving Session Calendar](#saving-sessions-calendar) and will be removed around **May 2026**
+Read only [calendar](https://www.home-assistant.io/integrations/calendar) sensor to record power down (saving) sessions. Will be `on` when a power down session that the account has joined is active. Calendar events will be automatically added/removed by the integration when joined events are discovered.
 
-`binary_sensor.octopus_energy_{{ACCOUNT_ID}}_octoplus_saving_sessions`
+Standard calendar attributes will indicate the current/next power down session.
 
-Binary sensor to indicate if a saving session that the account has joined is active.
+!!! warning
 
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `current_joined_event_start` | `datetime` | The datetime the current saving session started |
-| `current_joined_event_end` | `datetime` | The datetime the current saving session will end |
-| `current_joined_event_duration_in_minutes` | `float` | The duration in minutes of the current saving session |
-| `next_joined_event_start` | `datetime` | The datetime the next saving session will start |
-| `next_joined_event_end` | `datetime` | The datetime the next saving session will end |
-| `next_joined_event_duration_in_minutes` | `float` | The duration in minutes of the next saving session |
+    The sensor does not store past events indefinitely. Past events could be removed without notice.
 
 !!! info
 
     You can use the [data_last_retrieved sensor](./diagnostics.md#saving-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+
+#### Automation Example
+
+Below is an example of raising a persistent notification 5 minutes before a power down session starts.
+
+```yaml
+triggers:
+- trigger: calendar
+  entity_id: calendar.octopus_energy_{{ACCOUNT_ID}}_octoplus_power_down
+  event: start
+  offset: -00:05:00
+actions:
+- action: persistent_notification.create
+  data:
+    title: Power Down Session Starting
+    message: >
+      {% set minutes = ((state_attr(trigger.entity_id, 'end_time') | as_datetime - state_attr(trigger.entity_id, 'start_time') | as_datetime).seconds / 60) | round(0) | string %}
+      {% set start_time = (state_attr(trigger.entity_id, 'start_time') | as_datetime).strftime('%H:%M') %}
+      Power down session starts at {{ start_time }} for {{ minutes }} minutes.
+```
+
+### Power Down Events
+
+`event.octopus_energy_{{ACCOUNT_ID}}_octoplus_power_down_events`
+
+The state of this sensor states when the power down session events were last updated. The attributes of this sensor exposes the joined and available power down sessions.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `available_events` | `array` | The collection of power down session events that you haven't joined |
+| `joined_events` | `array` | The collection of power down session events that you have joined. This will include upcoming and past events |
+
+Each available event item will include the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `id` | `integer` | The id of the event |
+| `code` | `string` | The event code of the event. This will be required to join via the [join service](../services.md#octopus_energyjoin_octoplus_power_down_session_event) |
+| `start` | `datetime` | The date/time the event starts |
+| `end` | `datetime` | The date/time the event starts |
+| `duration_in_minutes` | `integer` | The duration of the event in minutes |
+| `octopoints_per_kwh` | `integer` | The number of octopoints that are awarded per kwh saved during the event |
+
+Each joined event item will include the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `id` | `integer` | The id of the event |
+| `start` | `datetime` | The date/time the event starts |
+| `end` | `datetime` | The date/time the event starts |
+| `duration_in_minutes` | `integer` | The duration of the event in minutes |
+| `rewarded_octopoints` | `integer` | The total number of octopoints that were awarded (if any or known) |
+| `octopoints_per_kwh` | `integer` | The number of octopoints that are/were awarded per kwh saved during the event (if known) |
+
+### Power Down Baseline
+
+`sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_octoplus_power_down_baseline`
+
+This will indicate the baseline consumption that you need to be below for the current 30 minute period of the current power down session or the first 30 minute period of the next power down session.
+
+You can use the [current period consumption](./electricity.md#current-interval-accumulative-consumption) sensor (if available) to see how on track you are.
+
+!!! note
+    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
+
+!!! info
+
+    An export variant of this sensor exists for export based meters.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start` | `datetime` | The start datetime the current baseline applies |
+| `end` | `datetime` | The end datetime the current baseline applies |
+| `is_incomplete_calculation` | `bool` | Determines if the calculation is based on the full set or partial set of data |
+| `consumption_items` | `list` | The consumption that was used to calculate the baselines |
+| `total_baseline` | `float` | The total baseline for the current power down session |
+| `baselines` | `list` | The collection of baselines for the current power down session |
+
+Each item within `consumption_items` consists of the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start` | `datetime` | The start datetime the consumption period |
+| `end` | `datetime` | The end datetime the consumption period |
+| `consumption` | `float` | The total consumption within the period in kWh |
+
+Each item within `baselines` consists of the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start` | `datetime` | The start datetime the baseline period |
+| `end` | `datetime` | The end datetime the baseline period |
+| `baseline` | `float` | The consumption in kWh for the baseline period |
+| `is_incomplete_calculation` | `bool` | Determines if the calculation is based on the full set or partial set of data |
+
+!!! info
+
+    You can use the [data_last_retrieved sensor](./diagnostics.md#saving-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+
+## Octopus Saving Sessions
+
+These sensors are for [Octopus Saving Sessions](https://octopus.energy/saving-sessions/).
 
 ### Saving Sessions Calendar
 
@@ -50,6 +145,10 @@ Binary sensor to indicate if a saving session that the account has joined is act
 Read only [calendar](https://www.home-assistant.io/integrations/calendar) sensor to record saving sessions. Will be `on` when a saving session that the account has joined is active. Calendar events will be automatically added/removed by the integration when joined events are discovered. 
 
 Standard calendar attributes will indicate the current/next saving session.
+
+!!! warning
+
+    These sensors are superceded by the sensors in the [Octopus Power Down](#octopus-power-down) section above, and will be removed in **January 2027**. See [this ADR](../architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information. They will not be available for new accounts that are setup to avoid confusion for new users.
 
 !!! warning
 
@@ -84,6 +183,10 @@ actions:
 `event.octopus_energy_{{ACCOUNT_ID}}_octoplus_saving_session_events`
 
 The state of this sensor states when the saving session events were last updated. The attributes of this sensor exposes the joined and available saving sessions.
+
+!!! warning
+
+    These sensors are superceded by the sensors in the [Octopus Power Down](#octopus-power-down) section above, and will be removed in **January 2027**. See [this ADR](../architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information. They will not be available for new accounts that are setup to avoid confusion for new users.
 
 !!! note
     This will only be available if you have enrolled into Octoplus. Once enrolled, reload the integration to gain access to this sensor.
@@ -120,6 +223,10 @@ Each joined event item will include the following attributes
 `sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_octoplus_saving_session_baseline`
 
 This will indicate the baseline consumption that you need to be below for the current 30 minute period of the current saving session or the first 30 minute period of the next saving session. 
+
+!!! warning
+
+    These sensors are superceded by the sensors in the [Octopus Power Down](#octopus-power-down) section above, and will be removed in **January 2027**. See [this ADR](../architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information. They will not be available for new accounts that are setup to avoid confusion for new users.
 
 You can use the [current period consumption](./electricity.md#current-interval-accumulative-consumption) sensor (if available) to see how on track you are.
 
@@ -163,38 +270,122 @@ Each item within `baselines` consists of the following attributes
 
     You can use the [data_last_retrieved sensor](./diagnostics.md#saving-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
 
-## Octopus Free Electricity
+## Octopus Power Up
 
-These sensors are for [Octopus Free Electricity](https://octopus.energy/free-electricity/).
-
-### Free Electricity Sessions
-
-!!! warning 
-
-    This sensor has been deprecated in favour of [Free Electricity Sessions Calendar](#free-electricity-sessions-calendar) and will be removed around **May 2026**
-
-`binary_sensor.octopus_energy_{{ACCOUNT_ID}}_octoplus_free_electricity_session`
-
-Binary sensor to indicate if a free electricity session is active.
+These sensors are for [Octopus Free Electricity](https://octopus.energy/free-electricity/), branded as "Power Up" sessions.
 
 !!! note
-    This will only be available if you have enrolled into Octoplus. Once enrolled, reload the integration to gain access to this sensor. This is only applicable if you have signed up to [free electricity sessions](https://octopus.energy/free-electricity/). This sensor uses public information supplied by https://github.com/BottlecapDave/OctopusEnergyApi.
+    This will only be available if you have enrolled into Octoplus. Once enrolled, reload the integration to gain access to these sensors. This is only applicable if you have signed up to [free electricity sessions](https://octopus.energy/free-electricity/). These sensors use public information supplied by https://github.com/BottlecapDave/OctopusEnergyApi.
+
+### Power Up Calendar
+
+`calendar.octopus_energy_{{ACCOUNT_ID}}_octoplus_power_up`
+
+Read only [calendar](https://www.home-assistant.io/integrations/calendar) sensor to record power up (free electricity) sessions. Will be `on` when a power up session is active. Calendar events will be automatically added/removed by the integration when events are discovered.
+
+Standard calendar attributes will indicate the current/next power up session.
+
+!!! warning
+
+    The sensor does not store past events indefinitely. Past events could be removed without notice.
+
+!!! note
+    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
+
+!!! info
+
+    You can use the [data_last_retrieved sensor](./diagnostics.md#free-electricity-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+
+#### Automation Example
+
+Below is an example of raising a persistent notification 5 minutes before a power up session starts.
+
+```yaml
+triggers:
+- trigger: calendar
+  entity_id: calendar.octopus_energy_{{ACCOUNT_ID}}_octoplus_power_up
+  event: start
+  offset: -00:05:00
+actions:
+- action: persistent_notification.create
+  data:
+    title: Power Up Session Starting
+    message: >
+      {% set minutes = ((state_attr(trigger.entity_id, 'end_time') | as_datetime - state_attr(trigger.entity_id, 'start_time') | as_datetime).seconds / 60) | round(0) | string %}
+      {% set start_time = (state_attr(trigger.entity_id, 'start_time') | as_datetime).strftime('%H:%M') %}
+      Power up session starts at {{ start_time }} for {{ minutes }} minutes.
+```
+
+### Power Up Session Events
+
+`event.octopus_energy_{{ACCOUNT_ID}}_octoplus_power_up_events`
+
+The state of this sensor states when the power up session events were last updated. The attributes of this sensor exposes the past, present and future power up sessions.
 
 !!! note
     This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `current_event_start` | `datetime` | The datetime the current free electricity session started |
-| `current_event_end` | `datetime` | The datetime the current free electricity session will end |
-| `current_event_duration_in_minutes` | `float` | The duration in minutes of the current free electricity session |
-| `next_event_start` | `datetime` | The datetime the next free electricity session will start |
-| `next_event_end` | `datetime` | The datetime the next free electricity session will end |
-| `next_event_duration_in_minutes` | `float` | The duration in minutes of the next free electricity session |
+| `events` | `array` | The collection of power up events |
+
+Each item in the `events` attribute will include the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `code` | `string` | The code of the event. |
+| `start` | `datetime` | The date/time the event starts |
+| `end` | `datetime` | The date/time the event starts |
+| `duration_in_minutes` | `integer` | The duration of the event in minutes |
+
+### Power Up Baseline
+
+`sensor.octopus_energy_electricity_{{METER_SERIAL_NUMBER}}_{{MPAN_NUMBER}}_octoplus_power_up_baseline`
+
+This will indicate the baseline consumption that you need to be above for the current 30 minute period of the current power up session or the first 30 minute period of the next power up session. 
+
+You can use the [current period consumption](./electricity.md#current-interval-accumulative-consumption) sensor (if available) to see how on track you are.
+
+!!! note
+    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
+
+!!! info
+
+    An export variant of this sensor exists for export based meters.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start` | `datetime` | The start datetime the current baseline applies |
+| `end` | `datetime` | The end datetime the current baseline applies |
+| `is_incomplete_calculation` | `bool` | Determines if the calculation is based on the full set or partial set of data |
+| `consumption_items` | `list` | The consumption that was used to calculate the baselines |
+| `total_baseline` | `float` | The total baseline for the current power up session |
+| `baselines` | `list` | The collection of baselines for the current power up session |
+
+Each item within `consumption_items` consists of the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start` | `datetime` | The start datetime the consumption period |
+| `end` | `datetime` | The end datetime the consumption period |
+| `consumption` | `float` | The total consumption within the period in kWh |
+
+Each item within `baselines` consists of the following attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `start` | `datetime` | The start datetime the baseline period |
+| `end` | `datetime` | The end datetime the baseline period |
+| `baseline` | `float` | The consumption in kWh for the baseline period |
+| `is_incomplete_calculation` | `bool` | Determines if the calculation is based on the full set or partial set of data |
 
 !!! info
 
     You can use the [data_last_retrieved sensor](./diagnostics.md#free-electricity-sessions-data-last-retrieved) to determine when the underlying data was last retrieved from the OE servers.
+
+## Octopus Free Electricity
+
+These sensors are for [Octopus Free Electricity](https://octopus.energy/free-electricity/).
 
 ### Free Electricity Sessions Calendar
 
@@ -203,6 +394,10 @@ Binary sensor to indicate if a free electricity session is active.
 Read only [calendar](https://www.home-assistant.io/integrations/calendar) sensor to record free electricity sessions. Will be `on` when a free electricity session is active. Calendar events will be automatically added/removed by the integration when events are discovered.
 
 Standard calendar attributes will indicate the current/next saving session.
+
+!!! warning
+
+    These sensors are superceded by the sensors in the [Octopus Power Up](#octopus-power-up) section above, and will be removed in **January 2027**. See [this ADR](../architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information. They will not be available for new accounts that are setup to avoid confusion for new users.
 
 !!! warning
 
@@ -244,6 +439,10 @@ actions:
 
 The state of this sensor states when the free electricity session events were last updated. The attributes of this sensor exposes the past, present and future free electricity sessions.
 
+!!! warning
+
+    These sensors are superceded by the sensors in the [Octopus Power Up](#octopus-power-up) section above, and will be removed in **January 2027**. See [this ADR](../architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information. They will not be available for new accounts that are setup to avoid confusion for new users.
+
 !!! note
     This will only be available if you have enrolled into Octoplus. Once enrolled, reload the integration to gain access to this sensor. This is only applicable if you have signed up to [free electricity sessions](https://octopus.energy/free-electricity/). This sensor uses public information supplied by https://github.com/BottlecapDave/OctopusEnergyApi.
 
@@ -270,6 +469,10 @@ Each item in the `events` attribute will include the following attributes
 This will indicate the baseline consumption that you need to be above for the current 30 minute period of the current free electricity session or the first 30 minute period of the next free electricity session. 
 
 You can use the [current period consumption](./electricity.md#current-interval-accumulative-consumption) sensor (if available) to see how on track you are.
+
+!!! warning
+
+    These sensors are superceded by the sensors in the [Octopus Power Up](#octopus-power-up) section above, and will be removed in **January 2027**. See [this ADR](../architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md) for more information. They will not be available for new accounts that are setup to avoid confusion for new users.
 
 !!! note
     This will only be available if you have enrolled into Octoplus. Once enrolled, reload the integration to gain access to this sensor. This is only applicable if you have signed up to [free electricity sessions](https://octopus.energy/free-electricity/). This sensor uses public information supplied by https://github.com/BottlecapDave/OctopusEnergyApi.

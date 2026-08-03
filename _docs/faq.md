@@ -13,11 +13,10 @@ Based on a request from [Octopus Energy](https://forum.octopus.energy/t/pending-
 | Current consumption data | Configurable (minimum 1) | This is most useful for a smart home to be as up-to-date as possible, but is also rate limited to 100 requests total per hour. 1 minute is enough for most people, but might need to be increased for those with multiple meters (e.g. gas and electricity) |
 | Previous consumption data | 30 | This is usually refreshed once a day at various times throughout the day. We want to be up-to-date as soon as possible, without swamping the API. |
 | Standing charges | 60 | This should only change if the user's tariff changes, so no need to request data too often. Keep in sync with account refreshes. This will stop updating once we have the data for the requested time period. |
-| Saving sessions | 15 | Inactive for most of the year and new sessions have enough warning to allow a bit of lag. |
-| Saving session target | 30 | Not relevant most of the time and intensive due to retrieving consumption data |
+| Power Down sessions | 15 | Inactive for most of the year and new sessions have enough warning to allow a bit of lag. |
+| Power Down target | 30 | Not relevant most of the time and intensive due to retrieving consumption data |
 | Wheel of fortune | 60 | Doesn't change that frequently, and not fundamental for a smart home (other than knowledge) so no need to request too often. |
-| Greenness Forecast | 180 | Doesn't change frequently |
-| Free electricity sessions | 90 | Data is provided by my own [private API](https://github.com/BottlecapDave/OctopusEnergyApi) and there is usually at least half a day notice before the sessions which is why this is refreshed slightly less than saving sessions. |
+| Power Up sessions | 90 | Data is provided by my own [private API](https://github.com/BottlecapDave/OctopusEnergyApi) and there is usually at least half a day notice before the sessions which is why this is refreshed slightly less than saving sessions. |
 | Heat Pump state | 1 | Data is updated frequently and doesn't seem to cause any issues around rate limits. This might change in the future. |
 
 If data cannot be refreshed for any reason (e.g. no internet or APIs are down), then the integration will attempt to retrieve data as soon as possible, slowly waiting longer between each attempt, to a maximum of 30 minutes between each attempt. Below is a rough example assuming the first (failed) scheduled refresh was at `10:35`.
@@ -110,6 +109,16 @@ Instead, you can use different external statistics that are exported by the `pre
 Please follow the [guide](./setup/energy_dashboard.md#previous-day-consumption) for instructions on how to add these separate sensors to the energy dashboard.
 
 You should not have this issue for current consumption sensors, as they are updated in realtime.
+
+## Sensors relating to my Home Mini have stopped updating or reporting as unknown (e.g. current electricity consumption). Is this a problem with the integration?
+
+While the Home Mini is local, the data unfortunately can't be polled directly and instead has to go via the OE servers.
+
+The first thing to check is if the Home Mini is communicating with the OE servers. This can be confirmed by going to the "my energy" section of the website. If the website isn't reporting live data or has any data populated for today in the daily view, then it means there's something wrong with the connection between the Home Mini and the OE servers. This can be for a number of reasons
+
+The first thing to check is if the Home Mini hasn't frozen. There have been reports of this happening, especially in hot weather or locations. A quick reboot (turn it off and on again) usually fixes the problem. If this isn't the issue, then it might be worth looking at the [FAQ](https://octopus.energy/octopus-home-mini-faq).
+
+If your Home Mini is reporting data on the OE website, then please raise an [issue](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/issues). Please include diagnostic data and an hour worth of debug Home Assistant logs.
 
 ## Why are the names of the entities so long, and can you change them to be shorter?
 

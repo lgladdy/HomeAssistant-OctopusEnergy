@@ -30,13 +30,11 @@ This blueprint will fire a configured action when the latest available consumpti
 
 ## Octoplus
 
-### Automatically join saving sessions
+### Automatically join power down sessions
 
-[Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_octoplus_join_saving_session.yaml) | [Source](./blueprints/octopus_energy_octoplus_join_saving_session.yaml)
+[Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_octoplus_join_power_down_session.yaml) | [Source](./blueprints/octopus_energy_octoplus_join_power_down_session.yaml)
 
-This blueprint will trigger when a new saving session has been discovered, join it, and send a notification alerting you to when it will start.
-
-If you wish to customise how the notification is delivered, you should install [this blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_octoplus_join_saving_session_custom_action.yaml) ([source](./blueprints/octopus_energy_octoplus_join_saving_session_custom_action.yaml))
+This blueprint will trigger when a new power down session has been discovered, join it, and send a notification alerting you to when it will start.
 
 ### Automatically redeem Octoplus points for account credit
 
@@ -50,21 +48,21 @@ This blueprint will automatically redeem all redeemable points for account credi
 
     You can manually run the automation if the redeemable points is over the threshold to get it in a state where automatic redemption will happen in the future.
 
-### Alert when current consumption is approaching saving sessions baseline
+### Alert when current consumption is approaching power down baseline
 
-[Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_baseline_alert.yaml) | [Source](./blueprints/octopus_energy_baseline_alert.yaml)
+[Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_power_down_baseline_alert.yaml) | [Source](./blueprints/octopus_energy_power_down_baseline_alert.yaml)
 
-This blueprint will fire a configured action when the consumption for the current interval (i.e. the current 30 minute period) reaches a configured percentage of the saving session baseline.
+This blueprint will fire a configured action when the consumption for the current interval (i.e. the current 30 minute period) reaches a configured percentage of the power down baseline.
 
 !!! warning
 
     This blueprint requires sensors provided by Octopus Energy Home Mini
 
-### Alert when current consumption has reached free electricity sessions baseline
+### Alert when current consumption has reached power up sessions baseline
 
-[Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_free_electricity_baseline_reached.yaml) | [Source](./blueprints/octopus_energy_free_electricity_baseline_reached.yaml)
+[Install blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FBottlecapDave%2FHomeAssistant-OctopusEnergy%2Fblob%2Fmain%2F_docs%2Fblueprints%2Foctopus_energy_power_up_baseline_reached.yaml) | [Source](./blueprints/octopus_energy_power_up_baseline_reached.yaml)
 
-This blueprint will fire a configured action when the consumption for the current interval (i.e. the current 30 minute period) reaches the current free electricity session baseline.
+This blueprint will fire a configured action when the consumption for the current interval (i.e. the current 30 minute period) reaches the current power up session baseline.
 
 !!! warning
 

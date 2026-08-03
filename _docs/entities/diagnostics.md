@@ -47,21 +47,6 @@ This sensor states when the home pro current consumption data was last retrieved
 | `next_refresh` | `datetime` | The timestamp of when the data will next be attempted to be retrieved |
 | `last_error` | `string` | The error that was raised to cause the last retrieval attempt to fail |
 
-## Greenness Forecast Data Last Retrieved
-
-`sensor.octopus_energy_{{ACCOUNT_ID}}_greenness_forecast_data_last_retrieved`
-
-This sensor states when greenness forecast data was last retrieved.
-
-!!! note
-    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `attempts` | `integer` | The number of attempts that have been made to retrieve the data |
-| `next_refresh` | `datetime` | The timestamp of when the data will next be attempted to be retrieved |
-| `last_error` | `string` | The error that was raised to cause the last retrieval attempt to fail |
-
 ## Intelligent Dispatches Data Last Retrieved
 
 `sensor.octopus_energy_{{DEVICE_ID}}_intelligent_dispatches_data_last_retrieved`
@@ -145,6 +130,36 @@ This sensor states when saving sessions data was last retrieved.
 `sensor.octopus_energy_{{ACCOUNT_ID}}_free_electricity_sessions_data_last_retrieved`
 
 This sensor states when free electricity sessions data was last retrieved.
+
+!!! note
+    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `attempts` | `integer` | The number of attempts that have been made to retrieve the data |
+| `next_refresh` | `datetime` | The timestamp of when the data will next be attempted to be retrieved |
+| `last_error` | `string` | The error that was raised to cause the last retrieval attempt to fail |
+
+## Power Down Data Last Retrieved
+
+`sensor.octopus_energy_{{ACCOUNT_ID}}_power_down_data_last_retrieved`
+
+This sensor states when power down sessions data was last retrieved.
+
+!!! note
+    This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `attempts` | `integer` | The number of attempts that have been made to retrieve the data |
+| `next_refresh` | `datetime` | The timestamp of when the data will next be attempted to be retrieved |
+| `last_error` | `string` | The error that was raised to cause the last retrieval attempt to fail |
+
+## Power Up Sessions Data Last Retrieved
+
+`sensor.octopus_energy_{{ACCOUNT_ID}}_power_up_data_last_retrieved`
+
+This sensor states when power up sessions data was last retrieved.
 
 !!! note
     This is [disabled by default](../faq.md#there-are-entities-that-are-disabled-why-are-they-disabled-and-how-do-i-enable-them). 

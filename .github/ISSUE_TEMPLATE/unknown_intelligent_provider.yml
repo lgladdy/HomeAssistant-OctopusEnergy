@@ -46,3 +46,13 @@ body:
       description: Please provide a screenshot of the feature within the app or type "Not available"
     validations:
       required: true
+  - type: checkboxes
+    id: ai-triage-consent
+    attributes:
+      label: AI Triage
+      description: >-
+        This repository uses an AI assistant to help triage new issues (for example, suggesting relevant GraphQL
+        API endpoints that could implement the feature). This is optional - if you don't consent, your issue is
+        your issue is still triaged by the maintainer as normal, just without the automated help.
+      options:
+        - label: I consent to this issue, including any text I provide, being processed by an AI assistant for automated triage

@@ -62,6 +62,7 @@ async def async_assert_electricity_data(product_code, tariff_code, is_smart_mete
     ("VAR-22-11-01", "E-2R-VAR-22-11-01-A", None, datetime.strptime("2024-07-18T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"),  datetime.strptime("2024-07-22T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
     ("IOG-KDP-VAR-25-04-10", "E-1R-IOG-KDP-VAR-25-04-10-E", None, datetime.strptime("2025-05-16T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2025-05-17T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
     ("IOG-SMB-TOU-25-12-12", "E-1R-IOG-SMB-TOU-25-12-12-E", None, datetime.strptime("2026-04-11T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-04-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
+    ("IOG-SMB-VAR-24-10-29", "E-1R-IOG-SMB-VAR-24-10-29-E", None, datetime.strptime("2026-07-06T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-07-09T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
     ("SUPER-GREEN-24M-21-07-30", "E-1R-SUPER-GREEN-24M-21-07-30-A", 10, datetime.strptime("2022-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),  datetime.strptime("2022-12-04T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
     ("GO-18-06-12", "E-1R-GO-18-06-12-A", 10, datetime.strptime("2022-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),  datetime.strptime("2022-12-04T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
     ("VAR-21-09-29", "E-1R-VAR-21-09-29-A", 10, datetime.strptime("2022-12-01T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),  datetime.strptime("2022-12-04T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
@@ -73,6 +74,7 @@ async def async_assert_electricity_data(product_code, tariff_code, is_smart_mete
     ("VAR-22-11-01", "E-2R-VAR-22-11-01-A", 10, datetime.strptime("2024-07-18T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"),  datetime.strptime("2024-07-22T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
     ("IOG-KDP-VAR-25-04-10", "E-1R-IOG-KDP-VAR-25-04-10-E", 10, datetime.strptime("2025-05-16T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2025-05-17T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
     ("IOG-SMB-TOU-25-12-12", "E-1R-IOG-SMB-TOU-25-12-12-E", 10, datetime.strptime("2026-04-11T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-04-14T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
+    ("IOG-SMB-VAR-24-10-29", "E-1R-IOG-SMB-VAR-24-10-29-E", 10, datetime.strptime("2026-07-06T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-07-09T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
 ])
 async def test_when_get_electricity_rates_is_called_with_tariff_then_data_is_returned_in_thirty_minute_increments(product_code: str, tariff_code: str, price_cap: bool, period_from: datetime, period_to: datetime):
     await async_assert_electricity_data(product_code, tariff_code, False, price_cap, period_from, period_to)
@@ -295,6 +297,7 @@ async def test_when_get_electricity_rates_is_called_with_2_rate_tariff_then_data
     # BST to GMT crossing — clocks fall back October 25, 2026 at 01:00 UTC
     ("IOG-SMB-TOU-25-12-12", "E-1R-IOG-SMB-TOU-25-12-12-E", datetime.strptime("2026-10-24T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-10-27T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z")),
     ("IOG-SMB-FIX-12M-26-02-11", "E-1R-IOG-SMB-FIX-12M-26-02-11-M", datetime.strptime("2026-07-06T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-07-09T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
+    ("IOG-SMB-VAR-24-10-29", "E-1R-IOG-SMB-VAR-24-10-29-E", datetime.strptime("2026-07-06T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z"), datetime.strptime("2026-07-09T00:00:00+01:00", "%Y-%m-%dT%H:%M:%S%z")),
 ])
 async def test_when_get_electricity_rates_is_called_with_time_of_use_intelligent_tariff_then_data_is_returned_correctly(product_code: str, tariff_code: str, period_from: datetime, period_to: datetime):
     # Act

@@ -59,6 +59,7 @@ async def test_when_get_account_is_called_then_electricity_and_gas_points_return
         assert "end" in agreement
 
     assert "octoplus_enrolled" in account
+    assert account["octoplus_enrolled"] == True
 
     assert "property_ids" in account
     assert account["property_ids"] is not None

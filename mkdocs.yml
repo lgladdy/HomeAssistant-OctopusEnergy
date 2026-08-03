@@ -15,7 +15,6 @@ nav:
     - Octoplus: ./entities/octoplus.md
     - Intelligent: ./entities/intelligent.md
     - Wheel Of Fortune: ./entities/wheel_of_fortune.md
-    - Greenness Forecast: ./entities/greenness_forecast.md
     - Home Pro: ./entities/home_pro.md
     - Heat Pump: ./entities/heat_pump.md
     - Diagnostics: ./entities/diagnostics.md
@@ -38,6 +37,7 @@ nav:
     - ./architecture_decision_records/0001_target_rates_removal.md
     - ./architecture_decision_records/0002_intelligent_is_dispatching_behaviour_changes.md
     - ./architecture_decision_records/0003_move_to_calendar_entities_for_octoplus_events.md
+    - ./architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions.md
   - faq.md
   - sponsorship.md
   - Other Integrations: https://bottlecapdave.github.io/HomeAssistant-Integrations

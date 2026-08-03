@@ -41,16 +41,15 @@ from .wheel_of_fortune.gas_spins import OctopusEnergyWheelOfFortuneGasSpins
 from .cost_tracker.cost_tracker import OctopusEnergyCostTrackerSensor
 from .cost_tracker.cost_tracker_week import OctopusEnergyCostTrackerWeekSensor
 from .cost_tracker.cost_tracker_month import OctopusEnergyCostTrackerMonthSensor
-from .greenness_forecast.current_index import OctopusEnergyGreennessForecastCurrentIndex
-from .greenness_forecast.next_index import OctopusEnergyGreennessForecastNextIndex
 from .octoplus.free_electricity_session_baseline import OctopusEnergyFreeElectricitySessionBaseline
+from .octoplus.power_up_baseline import OctopusEnergyPowerUpBaseline
+from .octoplus.power_down_baseline import OctopusEnergyPowerDownBaseline
 from .diagnostics_entities.account_data_last_retrieved import OctopusEnergyAccountDataLastRetrieved
 from .diagnostics_entities.electricity_current_consumption_home_pro_data_last_retrieved import OctopusEnergyElectricityCurrentConsumptionHomeProDataLastRetrieved
 from .diagnostics_entities.gas_current_consumption_data_last_retrieved import OctopusEnergyGasCurrentConsumptionDataLastRetrieved
 from .diagnostics_entities.electricity_rates_data_last_retrieved import OctopusEnergyElectricityCurrentRatesDataLastRetrieved
 from .diagnostics_entities.electricity_previous_consumption_and_rates_data_last_retrieved import OctopusEnergyElectricityPreviousConsumptionAndRatesDataLastRetrieved
 from .diagnostics_entities.electricity_standing_charge_data_last_retrieved import OctopusEnergyElectricityCurrentStandingChargeDataLastRetrieved
-from .diagnostics_entities.greenness_forecast_data_last_retrieved import OctopusEnergyGreennessForecastDataLastRetrieved
 from .diagnostics_entities.saving_sessions_data_last_retrieved import OctopusEnergySavingSessionsDataLastRetrieved
 from .diagnostics_entities.wheel_of_fortune_data_last_retrieved import OctopusEnergyWheelOfFortuneDataLastRetrieved
 from .diagnostics_entities.intelligent_dispatches_data_last_retrieved import OctopusEnergyIntelligentDispatchesDataLastRetrieved
@@ -61,6 +60,8 @@ from .diagnostics_entities.gas_current_consumption_home_pro_data_last_retrieved 
 from .diagnostics_entities.gas_previous_consumption_and_rates_data_last_retrieved import OctopusEnergyGasPreviousConsumptionAndRatesDataLastRetrieved
 from .diagnostics_entities.gas_rates_data_last_retrieved import OctopusEnergyGasCurrentRatesDataLastRetrieved
 from .diagnostics_entities.gas_standing_charge_data_last_retrieved import OctopusEnergyGasCurrentStandingChargeDataLastRetrieved
+from .diagnostics_entities.power_down_data_last_retrieved import OctopusEnergyPowerDownDataLastRetrieved
+from .diagnostics_entities.power_up_data_last_retrieved import OctopusEnergyPowerUpDataLastRetrieved
 from .heat_pump import get_mock_heat_pump_id
 from .heat_pump.sensor_temperature import OctopusEnergyHeatPumpSensorTemperature
 from .heat_pump.sensor_humidity import OctopusEnergyHeatPumpSensorHumidity
@@ -77,7 +78,9 @@ from .heat_pump.live_heat_output import OctopusEnergyHeatPumpLiveHeatOutput
 from .heat_pump.live_power_input import OctopusEnergyHeatPumpLivePowerInput
 from .api_client.intelligent_device import IntelligentDevice
 from .intelligent.current_state import OctopusEnergyIntelligentCurrentState
+from .intelligent.state_of_charge import OctopusEnergyIntelligentStateOfCharge
 from .intelligent import get_intelligent_features
+from .intelligent.charge_cap_hours import OctopusEnergyIntelligentChargeCapHours
 
 from .utils.debug_overrides import async_get_account_debug_override, async_get_meter_debug_override
 
@@ -116,13 +119,13 @@ from .const import (
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE_PLANNED_AND_STARTED_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_SETTINGS,
+  CONFIG_MAIN_LEGACY_SAVING_SESSIONS_FREE_ELECTRICITY_PRESENT,
   CONFIG_MAIN_LIVE_ELECTRICITY_CONSUMPTION_REFRESH_IN_MINUTES,
   CONFIG_MAIN_LIVE_GAS_CONSUMPTION_REFRESH_IN_MINUTES,
   CONFIG_MAIN_PRICE_CAP_SETTINGS,
   CONFIG_TARIFF_COMPARISON_MPAN_MPRN,
-  DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR,
+  DATA_POWER_UP_SESSIONS_COORDINATOR,
   DATA_ACCOUNT_COORDINATOR,
-  DATA_GREENNESS_FORECAST_COORDINATOR,
   DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_COORDINATOR,
   DATA_HEAT_PUMP_CONFIGURATION_AND_STATUS_KEY,
   DATA_HEAT_PUMP_IDS,
@@ -131,7 +134,7 @@ from .const import (
   DATA_INTELLIGENT_DISPATCHES_COORDINATOR,
   DATA_INTELLIGENT_SETTINGS_COORDINATOR,
   DATA_PREVIOUS_CONSUMPTION_COORDINATOR_KEY,
-  DATA_SAVING_SESSIONS_COORDINATOR,
+  DATA_POWER_DOWN_COORDINATOR,
   DEFAULT_CALORIFIC_VALUE,
   DOMAIN,
   
@@ -142,7 +145,8 @@ from .const import (
 
   DATA_ELECTRICITY_RATES_COORDINATOR_KEY,
   DATA_CLIENT,
-  DATA_ACCOUNT
+  DATA_ACCOUNT,
+  REPAIR_FREE_ELECTRICITY_SENSORS_REMOVAL
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -282,29 +286,29 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_entities):
   account_id = config[CONFIG_ACCOUNT_ID]
+  legacy_saving_sessions_free_electricity_present = config[CONFIG_MAIN_LEGACY_SAVING_SESSIONS_FREE_ELECTRICITY_PRESENT] if CONFIG_MAIN_LEGACY_SAVING_SESSIONS_FREE_ELECTRICITY_PRESENT in config else False
   
   client = hass.data[DOMAIN][account_id][DATA_CLIENT]
 
-  free_electricity_session_coordinator = hass.data[DOMAIN][account_id][DATA_FREE_ELECTRICITY_SESSIONS_COORDINATOR]
-  saving_session_coordinator = hass.data[DOMAIN][account_id][DATA_SAVING_SESSIONS_COORDINATOR]
+  power_up_sessions_coordinator = hass.data[DOMAIN][account_id][DATA_POWER_UP_SESSIONS_COORDINATOR]
+  power_down_coordinator = hass.data[DOMAIN][account_id][DATA_POWER_DOWN_COORDINATOR]
   home_pro_client = hass.data[DOMAIN][account_id][DATA_HOME_PRO_CLIENT] if DATA_HOME_PRO_CLIENT in hass.data[DOMAIN][account_id] else None
   
   account_result = hass.data[DOMAIN][account_id][DATA_ACCOUNT]
   account_info = account_result.account if account_result is not None else None
 
   wheel_of_fortune_coordinator = await async_setup_wheel_of_fortune_spins_coordinator(hass, account_id)
-  greenness_forecast_coordinator = hass.data[DOMAIN][account_id][DATA_GREENNESS_FORECAST_COORDINATOR]
   
   entities = [
     OctopusEnergyAccountDataLastRetrieved(hass, hass.data[DOMAIN][account_id][DATA_ACCOUNT_COORDINATOR], account_id),
     OctopusEnergyWheelOfFortuneElectricitySpins(hass, wheel_of_fortune_coordinator, client, account_id),
     OctopusEnergyWheelOfFortuneGasSpins(hass, wheel_of_fortune_coordinator, client, account_id),
-    OctopusEnergyGreennessForecastCurrentIndex(hass, greenness_forecast_coordinator, account_id),
-    OctopusEnergyGreennessForecastNextIndex(hass, greenness_forecast_coordinator, account_id),
-    OctopusEnergyGreennessForecastDataLastRetrieved(hass, greenness_forecast_coordinator, account_id),
-    OctopusEnergySavingSessionsDataLastRetrieved(hass, saving_session_coordinator, account_id),
+    OctopusEnergyPowerDownDataLastRetrieved(hass, power_down_coordinator, account_id),
     OctopusEnergyWheelOfFortuneDataLastRetrieved(hass, wheel_of_fortune_coordinator, account_id)
   ]
+
+  if legacy_saving_sessions_free_electricity_present:
+    entities.append(OctopusEnergySavingSessionsDataLastRetrieved(hass, power_down_coordinator, account_id))
 
   intelligent_result: IntelligentDeviceCoordinatorResult = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_DEVICES] if DATA_INTELLIGENT_DEVICES in hass.data[DOMAIN][account_id] else None
   intelligent_devices: list[IntelligentDevice] = intelligent_result.devices if intelligent_result is not None else []
@@ -317,7 +321,12 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
       intelligent_features = get_intelligent_features(intelligent_device.provider)
       if intelligent_features.current_state_supported:
         entities.append(OctopusEnergyIntelligentCurrentState(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
-                      
+
+      if intelligent_features.planned_dispatches_supported:
+        entities.append(OctopusEnergyIntelligentChargeCapHours(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
+
+      entities.append(OctopusEnergyIntelligentStateOfCharge(hass, intelligent_dispatches_coordinator, intelligent_device, account_id))
+
     intelligent_settings_coordinator = hass.data[DOMAIN][account_id][DATA_INTELLIGENT_SETTINGS_COORDINATOR.format(intelligent_device.id)] if DATA_INTELLIGENT_SETTINGS_COORDINATOR.format(intelligent_device.id) in hass.data[DOMAIN][account_id] else None
     if intelligent_settings_coordinator is not None:
       entities.append(OctopusEnergyIntelligentSettingsDataLastRetrieved(hass, intelligent_settings_coordinator, account_id, intelligent_device))
@@ -327,9 +336,24 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
 
   octoplus_enrolled = account_info is not None and account_info["octoplus_enrolled"] == True
   
+  if legacy_saving_sessions_free_electricity_present:
+    ir.async_create_issue(
+      hass,
+      DOMAIN,
+      REPAIR_FREE_ELECTRICITY_SENSORS_REMOVAL,
+      is_fixable=False,
+      severity=ir.IssueSeverity.ERROR,
+      learn_more_url="https://bottlecapdave.github.io/HomeAssistant-OctopusEnergy/architecture_decision_records/0004_rename_saving_sessions_free_electricity_sessions",
+      translation_key="free_electricity_sensors_removal",
+    )
+
   if octoplus_enrolled:
     entities.append(OctopusEnergyOctoplusPoints(hass, client, account_id))
-    entities.append(OctopusEnergyFreeElectricitySessionsDataLastRetrieved(hass, free_electricity_session_coordinator, account_id))
+
+    if legacy_saving_sessions_free_electricity_present:
+      entities.append(OctopusEnergyFreeElectricitySessionsDataLastRetrieved(hass, power_up_sessions_coordinator, account_id))
+
+    entities.append(OctopusEnergyPowerUpDataLastRetrieved(hass, power_up_sessions_coordinator, account_id))
 
   account_debug_override = await async_get_account_debug_override(hass, account_id)
 
@@ -380,11 +404,17 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
           )
           entities.append(OctopusEnergyPreviousAccumulativeElectricityConsumption(hass, client, previous_consumption_coordinator, account_id, meter, point))
           entities.append(OctopusEnergyPreviousAccumulativeElectricityCost(hass, previous_consumption_coordinator, meter, point))
-          entities.append(OctopusEnergySavingSessionBaseline(hass, saving_session_coordinator, previous_consumption_coordinator, meter, point, account_debug_override.mock_saving_session_baseline if debug_override is not None else False))
+          entities.append(OctopusEnergyPowerDownBaseline(hass, power_down_coordinator, previous_consumption_coordinator, meter, point, account_debug_override.mock_power_down_baseline if debug_override is not None else False))
           entities.append(OctopusEnergyElectricityPreviousConsumptionAndRatesDataLastRetrieved(hass, previous_consumption_coordinator, meter, point))
 
+          if legacy_saving_sessions_free_electricity_present:
+            entities.append(OctopusEnergySavingSessionBaseline(hass, power_down_coordinator, previous_consumption_coordinator, meter, point, account_debug_override.mock_power_down_baseline if debug_override is not None else False))
+
           if octoplus_enrolled:
-            entities.append(OctopusEnergyFreeElectricitySessionBaseline(hass, free_electricity_session_coordinator, previous_consumption_coordinator, meter, point, account_debug_override.mock_saving_session_baseline if debug_override is not None else False))
+            if legacy_saving_sessions_free_electricity_present:
+              entities.append(OctopusEnergyFreeElectricitySessionBaseline(hass, power_up_sessions_coordinator, previous_consumption_coordinator, meter, point, account_debug_override.mock_power_down_baseline if debug_override is not None else False))
+
+            entities.append(OctopusEnergyPowerUpBaseline(hass, power_up_sessions_coordinator, previous_consumption_coordinator, meter, point, account_debug_override.mock_power_down_baseline if debug_override is not None else False))
           
           # Create a peak override for each available peak type for our tariff
           total_unique_rates = await get_unique_electricity_rates(hass, client, electricity_tariff if debug_override is None or debug_override.tariff is None else debug_override.tariff)
@@ -415,7 +445,7 @@ async def async_setup_default_sensors(hass: HomeAssistant, config, async_add_ent
                 entities.append(OctopusEnergyCurrentElectricityConsumption(hass, consumption_coordinator, meter, point))
                 entities.append(OctopusEnergyCurrentAccumulativeElectricityConsumption(hass, consumption_coordinator, electricity_rate_coordinator, electricity_standing_charges_coordinator, meter, point))
                 entities.append(OctopusEnergyCurrentAccumulativeElectricityCost(hass, consumption_coordinator, electricity_rate_coordinator, electricity_standing_charges_coordinator, meter, point))
-                entities.append(OctopusEnergyCurrentElectricityIntervalAccumulativeConsumption(hass, consumption_coordinator, saving_session_coordinator, meter, point))
+                entities.append(OctopusEnergyCurrentElectricityIntervalAccumulativeConsumption(hass, consumption_coordinator, power_down_coordinator, meter, point))
                 entities.append(OctopusEnergyElectricityCurrentConsumptionDataLastRetrieved(hass, consumption_coordinator, meter, point))
                 entities.append(OctopusEnergyCurrentTotalElectricityExport(hass, consumption_coordinator, meter, point))
                 

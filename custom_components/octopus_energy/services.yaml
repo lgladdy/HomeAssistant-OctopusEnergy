@@ -31,6 +31,20 @@ join_octoplus_saving_session_event:
       selector:
         text:
 
+join_octoplus_power_down_session_event:
+  name: Join Octoplus power down session event
+  description: Joins a given Octoplus power down session event.
+  target:
+    entity:
+      integration: octopus_energy
+      domain: event
+  fields:
+    event_code:
+      name: Event code
+      description: The code of the event that is to be joined.
+      selector:
+        text:
+
 spin_wheel_of_fortune:
   name: Spin wheel of fortune
   description: Spins the wheel of fortune for a given energy type

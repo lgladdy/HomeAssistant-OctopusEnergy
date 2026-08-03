@@ -21,9 +21,8 @@ from .coordinators.account import AccountCoordinatorResult, async_setup_account_
 from .coordinators.intelligent_dispatches import IntelligentDispatchesCoordinatorResult, async_setup_intelligent_dispatches_coordinator
 from .coordinators.intelligent_settings import async_setup_intelligent_settings_coordinator
 from .coordinators.electricity_rates import async_setup_electricity_rates_coordinator
-from .coordinators.saving_sessions import async_setup_saving_sessions_coordinators
-from .coordinators.free_electricity_sessions import async_setup_free_electricity_sessions_coordinators
-from .coordinators.greenness_forecast import async_setup_greenness_forecast_coordinator
+from .coordinators.power_down_sessions import async_setup_power_down_coordinators
+from .coordinators.power_up_sessions import async_setup_power_up_sessions_coordinators
 from .statistics import get_statistic_ids_to_remove
 from .intelligent import get_intelligent_features, mock_intelligent_devices
 from .coordinators.heat_pump_configuration_and_status import HeatPumpCoordinatorResult, async_setup_heat_pump_coordinator
@@ -61,6 +60,7 @@ from .const import (
   CONFIG_MAIN_HOME_PRO_ADDRESS,
   CONFIG_MAIN_HOME_PRO_API_KEY,
   CONFIG_MAIN_HOME_PRO_SETTINGS,
+  CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP,
   CONFIG_MAIN_INTELLIGENT_MANUAL_DISPATCHES,
   CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_INTELLIGENT_RATE_MODE,
@@ -393,6 +393,11 @@ async def async_setup_dependencies(hass, config):
         minimum_dispatch_duration_in_minutes = (config[CONFIG_MAIN_INTELLIGENT_SETTINGS][CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES] 
                                  if CONFIG_MAIN_INTELLIGENT_SETTINGS in config and CONFIG_MAIN_INTELLIGENT_MINIMUM_DISPATCH_DURATION_IN_MINUTES in config[CONFIG_MAIN_INTELLIGENT_SETTINGS] 
                                  else CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES)
+        
+        enforce_intelligent_cap = (config[CONFIG_MAIN_INTELLIGENT_SETTINGS][CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP]
+                                   if CONFIG_MAIN_INTELLIGENT_SETTINGS in config and CONFIG_MAIN_INTELLIGENT_ENFORCE_CAP in config[CONFIG_MAIN_INTELLIGENT_SETTINGS]
+                                   else False)
+
         await async_setup_electricity_rates_coordinator(hass,
                                                         account_id,
                                                         mpan,
@@ -401,7 +406,8 @@ async def async_setup_dependencies(hass, config):
                                                         is_export_meter,
                                                         intelligent_rate_mode,
                                                         tariff_override,
-                                                        minimum_dispatch_duration_in_minutes)
+                                                        minimum_dispatch_duration_in_minutes,
+                                                        enforce_intelligent_cap)
 
   mock_heat_pump = account_debug_override.mock_heat_pump if account_debug_override is not None else False
   if mock_heat_pump:
@@ -441,11 +447,9 @@ async def async_setup_dependencies(hass, config):
 
   await async_setup_account_info_coordinator(hass, account_id)
 
-  await async_setup_saving_sessions_coordinators(hass, account_id)
+  await async_setup_power_down_coordinators(hass, account_id)
 
-  await async_setup_free_electricity_sessions_coordinators(hass, account_id)
-
-  await async_setup_greenness_forecast_coordinator(hass, account_id)
+  await async_setup_power_up_sessions_coordinators(hass, account_id)
 
 async def options_update_listener(hass, entry):
   """Handle options update."""
