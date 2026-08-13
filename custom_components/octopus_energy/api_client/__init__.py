@@ -2194,14 +2194,20 @@ class OctopusEnergyApiClient:
         _LOGGER.warning(msg)
         raise ServerException(msg)
       elif response.status in [401, 403]:
-        msg = f'Response received - {url} ({request_context}) - Unauthenticated request: {response.status}; {text}'
-        # Reset the GraphQL token and refresh token so that we can re-authenticate on the next request
-        self._graphql_token = None
-        self._graphql_expiration = None
-        self._graphql_refresh_token = None
-        self._graphql_refresh_token_expiration = None
-        _LOGGER.warning(msg)
-        raise AuthenticationException(msg, [])
+        # For some reason cloudfront errors are returning a 403 status code, so we need to check the response text to see if it is a cloudfront error or an unauthenticated request
+        if response.status == 403 and "The request could not be satisfied" in text and "cloudfront" in text:
+          msg = f'Response received - {url} ({request_context}) - DO NOT REPORT - Octopus Energy server error ({url}): {response.status}; {text}'
+          _LOGGER.info(msg)
+          raise ServerException(msg)
+        else:
+          msg = f'Response received - {url} ({request_context}) - Unauthenticated request: {response.status}; {text}'
+          # Reset the GraphQL token and refresh token so that we can re-authenticate on the next request
+          self._graphql_token = None
+          self._graphql_expiration = None
+          self._graphql_refresh_token = None
+          self._graphql_refresh_token_expiration = None
+          _LOGGER.warning(msg)
+          raise AuthenticationException(msg, [])
       elif response.status not in [404]:
         msg = f'Response received - {url} ({request_context}) - Failed to send request: {response.status}; {text}'
         _LOGGER.warning(msg)
