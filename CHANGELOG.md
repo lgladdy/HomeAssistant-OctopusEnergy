@@ -1,3 +1,13 @@
+## [19.0.1](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v19.0.0...v19.0.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* Add response support to Octoplus session join services (Thanks [@chalfontchubby](https://github.com/chalfontchubby)) ([390760b](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/390760b89c7eccf433d4b791b7c5d12bebec4041))
+* align cost tracker identity with target (Thanks @Mark-RE-Johnson) ([7682e40](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/7682e4077a2b190d8f63a871025a7830960449c7))
+* Fixed filtering of power up and power down events correctly (2 hours dev time) ([96fde92](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/96fde926e3df2ed2a5a3e748f90022fbde03743a))
+* Handle 403 errors from cloudfront which is incorrectly reporting unauthenticated error (15 minutes dev time) ([6b9d140](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/commit/6b9d140ac0f162c44fcdef70551ad628c05c1fa1))
+
 # [19.0.0](https://github.com/BottlecapDave/HomeAssistant-OctopusEnergy/compare/v18.3.3...v19.0.0) (2026-08-03)
 
 
