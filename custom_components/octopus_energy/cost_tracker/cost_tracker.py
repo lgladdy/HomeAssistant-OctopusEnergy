@@ -35,6 +35,7 @@ from ..const import (
   CONFIG_ACCOUNT_ID,
   CONFIG_COST_TRACKER_ENTITY_ACCUMULATIVE_VALUE,
   CONFIG_COST_TRACKER_MANUAL_RESET,
+  CONFIG_COST_TRACKER_MPAN,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_COST_TRACKER_NAME,
   DOMAIN,
@@ -180,7 +181,8 @@ class OctopusEnergyCostTrackerSensor(CoordinatorEntity, RestoreSensor, BaseCostT
             },
             unique_id=build_cost_tracker_unique_id(
               self._config[CONFIG_ACCOUNT_ID],
-              new_entity_id
+              new_entity_id,
+              self._config[CONFIG_COST_TRACKER_MPAN]
             )
         )
         _LOGGER.debug(f"Tracked entity for '{self.entity_id}' updated from '{self._config[CONFIG_COST_TRACKER_TARGET_ENTITY_ID]}' to '{new_entity_id}'. Reloading...")

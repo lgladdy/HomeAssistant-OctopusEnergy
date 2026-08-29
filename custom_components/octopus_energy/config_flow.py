@@ -163,7 +163,7 @@ class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
         "name": discovery_info[CONFIG_COST_TRACKER_DISCOVERY_NAME],
       }
 
-      unique_id = build_cost_tracker_unique_id(self._account_id, self._target_entity_id)
+      unique_id = build_cost_tracker_unique_id(self._account_id, self._target_entity_id, None)
       await self.async_set_unique_id(unique_id)
       self._abort_if_unique_id_configured()
       
@@ -363,7 +363,7 @@ class OctopusEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
         CONFIG_ACCOUNT_ID: account_id,
         CONFIG_COST_TRACKER_TARGET_ENTITY_ID: user_input[CONFIG_COST_TRACKER_TARGET_ENTITY_ID],
       })
-      unique_id = build_cost_tracker_unique_id(account_id, user_input[CONFIG_COST_TRACKER_TARGET_ENTITY_ID])
+      unique_id = build_cost_tracker_unique_id(account_id, user_input[CONFIG_COST_TRACKER_TARGET_ENTITY_ID], user_input[CONFIG_COST_TRACKER_MPAN])
       await self.async_set_unique_id(unique_id, raise_on_progress=False)
       self._abort_if_unique_id_configured()
 

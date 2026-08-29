@@ -46,6 +46,7 @@ from .utils.repairs import safe_repair_key
 from .storage.heat_pump_ids import async_load_cached_heat_pump_ids, async_save_cached_heat_pump_ids
 
 from .const import (
+  CONFIG_COST_TRACKER_MPAN,
   CONFIG_COST_TRACKER_TARGET_ENTITY_ID,
   CONFIG_DEFAULT_MINIMUM_DISPATCH_DURATION_IN_MINUTES,
   CONFIG_MAIN_AUTO_DISCOVER_COST_TRACKERS,
@@ -135,10 +136,11 @@ async def async_migrate_entry(hass, config_entry):
           source_device_id=new_data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID],
         )
 
-      if config_entry.version < 11:
+      if config_entry.version < 12:
         unique_id = build_cost_tracker_unique_id(
           new_data[CONFIG_ACCOUNT_ID],
-          new_data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID]
+          new_data[CONFIG_COST_TRACKER_TARGET_ENTITY_ID],
+          new_data[CONFIG_COST_TRACKER_MPAN]
         )
 
     elif CONFIG_KIND in new_data and new_data[CONFIG_KIND] == CONFIG_KIND_TARIFF_COMPARISON:

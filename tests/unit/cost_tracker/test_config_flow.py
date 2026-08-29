@@ -79,7 +79,7 @@ async def test_discovery_flow_keeps_discovered_target_as_canonical_identity():
 
   assert user_input[CONFIG_COST_TRACKER_TARGET_ENTITY_ID] == "sensor.lounge_cooling_energy"
   flow.async_set_unique_id.assert_awaited_once_with(
-    "octopus_energy_ct_A-TEST_sensor.lounge_cooling_energy",
+    "octopus_energy_ct_A-TEST_sensor.lounge_cooling_energy_1234567890123",
     raise_on_progress=False,
   )
   flow._async_abort_entries_match.assert_called_once_with({
@@ -145,11 +145,12 @@ async def test_reconfigure_cost_tracker_preserves_existing_target_entity():
 @pytest.mark.asyncio
 async def test_migration_repairs_unique_id_from_canonical_target(old_unique_id):
   config_entry = SimpleNamespace(
-    version=10,
+    version=11,
     data={
       CONFIG_KIND: CONFIG_KIND_COST_TRACKER,
       CONFIG_ACCOUNT_ID: "A-TEST",
       CONFIG_COST_TRACKER_TARGET_ENTITY_ID: "sensor.kitchen_heating_energy",
+      CONFIG_COST_TRACKER_MPAN: "1234567890123",
     },
     options={},
     title="Kitchen heating (cost tracker)",
@@ -170,6 +171,6 @@ async def test_migration_repairs_unique_id_from_canonical_target(old_unique_id):
     title="Kitchen heating (cost tracker)",
     data=config_entry.data,
     options={},
-    unique_id="octopus_energy_ct_A-TEST_sensor.kitchen_heating_energy",
+    unique_id="octopus_energy_ct_A-TEST_sensor.kitchen_heating_energy_1234567890123",
     version=CONFIG_VERSION,
   )
