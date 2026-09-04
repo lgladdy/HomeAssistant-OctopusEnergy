@@ -6,9 +6,11 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
+from homeassistant.components.recorder import get_instance, history
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import generate_entity_id
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt as dt_util
 from homeassistant.util.dt import (utcnow)
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -56,12 +58,16 @@ class OctopusEnergyChargePointEnergy(BaseOctopusEnergyChargePointSensor, Restore
   consumption from when this sensor was first created onward.
   """
 
-  def __init__(self, hass: HomeAssistant, charge_point_id: str, charge_point: OnboardedChargePoint):
+  def __init__(self, hass: HomeAssistant, charge_point_id: str, charge_point: OnboardedChargePoint, live_power_entity_id: str):
     """Init sensor."""
     BaseOctopusEnergyChargePointSensor.__init__(self, hass, charge_point_id, charge_point)
 
     self._state = None
     self._last_reading_at: datetime | None = None
+    self._last_power_kw: float | None = None
+    # The live power sensor's own real entity_id, passed in by sensor.py
+    # rather than reconstructed here - see the comment at that call site.
+    self._live_power_entity_id = live_power_entity_id
     self.entity_id = generate_entity_id("sensor.{}", self.unique_id, hass=hass)
 
   @property
@@ -103,29 +109,73 @@ class OctopusEnergyChargePointEnergy(BaseOctopusEnergyChargePointSensor, Restore
   def native_value(self) -> float:
     return self._state
 
-  @property
-  def _live_power_entity_id(self) -> str:
-    return f"sensor.octopus_energy_charge_point_{self._charge_point_id}_live_power"
-
   @callback
   def _async_update_from_power(self, event) -> None:
     """Integrate the live power sensor's latest reading into the running energy total."""
     new_state = event.data.get("new_state")
     if new_state is None or new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-      return
-
-    try:
-      power_kw = float(new_state.state)
-    except (TypeError, ValueError):
-      return
+      power_kw = None
+    else:
+      try:
+        power_kw = float(new_state.state)
+      except (TypeError, ValueError):
+        power_kw = None
 
     now = utcnow()
-    if self._last_reading_at is not None and self._state is not None:
+    # Integrate using the *previous* reading's power over the window that's
+    # just elapsed - that's what was actually being drawn during it, unlike
+    # the new reading that just arrived. Using the new value instead (as
+    # this used to) means e.g. the step where charging stops (power drops
+    # to 0) gets integrated as elapsed_time * 0 - discarding real energy
+    # that was actually consumed right up until that reading.
+    if self._last_reading_at is not None and self._last_power_kw is not None and self._state is not None:
       elapsed_hours = (now - self._last_reading_at).total_seconds() / 3600
-      self._state = integrate_energy_kwh(self._state, power_kw, elapsed_hours)
+      self._state = integrate_energy_kwh(self._state, self._last_power_kw, elapsed_hours)
+      self.async_write_ha_state()
 
     self._last_reading_at = now
-    self.async_write_ha_state()
+    self._last_power_kw = power_kw
+
+  async def _async_backfill_from_recorder_history(self) -> None:
+    """One-time backfill for a brand new sensor (no restored state at all -
+    a fresh install, or the entity being deleted and recreated): walk
+    today's already-recorded live_power history and integrate it, rather
+    than silently starting from 0 and losing energy that was already
+    measured and is sitting right there in the recorder. Every day after
+    this one still starts fresh at midnight, same as always - this only
+    ever fires once, at creation."""
+    try:
+      start_of_today = dt_util.start_of_local_day()
+      recorder = get_instance(self.hass)
+      history_by_entity = await recorder.async_add_executor_job(
+        lambda: history.state_changes_during_period(
+          self.hass, start_of_today, None, self._live_power_entity_id,
+          no_attributes=True, include_start_time_state=True
+        )
+      )
+    except Exception as e:
+      _LOGGER.debug(f"Failed to backfill charge point energy from recorder history: {e}")
+      return
+
+    for state in history_by_entity.get(self._live_power_entity_id, []):
+      if state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+        continue
+
+      try:
+        power_kw = float(state.state)
+      except (TypeError, ValueError):
+        continue
+
+      if self._last_reading_at is not None and self._last_power_kw is not None:
+        elapsed_hours = (state.last_updated - self._last_reading_at).total_seconds() / 3600
+        self._state = integrate_energy_kwh(self._state, self._last_power_kw, elapsed_hours)
+
+      self._last_reading_at = state.last_updated
+      self._last_power_kw = power_kw
+
+    if self._state > 0:
+      _LOGGER.debug(f"Backfilled OctopusEnergyChargePointEnergy from recorder history: {self._state}")
+      self.async_write_ha_state()
 
   async def async_added_to_hass(self) -> None:
     """Restore last state and start tracking the live power sensor."""
@@ -141,6 +191,16 @@ class OctopusEnergyChargePointEnergy(BaseOctopusEnergyChargePointSensor, Restore
       self._state = 0
 
     _LOGGER.debug(f'Restored OctopusEnergyChargePointEnergy state: {self._state}')
+
+    if self._state == 0:
+      # Either a genuinely fresh entity (no restore_state entry at all), or
+      # one restored at exactly 0 - which covers both "no charging yet
+      # today" (backfill just recomputes the same 0, harmless) and a stale
+      # 0 left over from before this entity ever tracked the right live
+      # power entity_id. Recomputing today's total from recorder history
+      # from scratch each time is idempotent, so re-running this on every
+      # such restart is safe, not just a one-off.
+      await self._async_backfill_from_recorder_history()
 
     self.async_on_remove(
       async_track_state_change_event(
